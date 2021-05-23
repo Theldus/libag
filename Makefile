@@ -36,7 +36,7 @@ BINDIR  = $(PREFIX)/bin
 CC      ?= gcc
 CFLAGS  += -Wall -Wextra -Wformat=2 -Wno-format-nonliteral -Wshadow
 CFLAGS  += -Wpointer-arith -Wcast-qual -Wmissing-prototypes -Wno-missing-braces
-CFLAGS  += -std=gnu89 -D_GNU_SOURCE -O2
+CFLAGS  += -fPIC -pie -Wl,-E -std=gnu89 -D_GNU_SOURCE -ggdb3
 LDFLAGS  = -lpcre -llzma -lz -pthread
 
 #===================================================================
@@ -47,21 +47,30 @@ LDFLAGS  = -lpcre -llzma -lz -pthread
 .PHONY : all clean
 
 # Sources
-C_SRC = $(wildcard $(AG_SRC)/*.c)
+C_SRC = $(wildcard $(AG_SRC)/*.c) \
+	$(wildcard libag.c)
 
 # Objects
 OBJ = $(C_SRC:.c=.o)
 
-all: ag
+all: libag.so test
 
 # Build objects rule
 %.o: %.c
-	$(CC) $< $(CFLAGS) -c -o $@
+	$(CC) $< $(CFLAGS) $(INCLUDE) -c -o $@
 
 # Ag standalone build
-ag: $(OBJ)
+libag.so: $(OBJ)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
+
+test.o: test.c
+	$(CC) $^ -c
+
+# Test
+test: libag.so test.o
+	$(CC) test.o -o $@ libag.so -ggdb3
 
 clean:
 	@rm -f $(AG_SRC)/*.o
-	@rm -f $(CURDIR)/ag
+	@rm -f $(CURDIR)/libag.so
+	@rm -f $(CURDIR)/tets
