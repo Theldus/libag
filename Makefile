@@ -73,4 +73,4 @@ test: libag.so test.o
 clean:
 	@rm -f $(AG_SRC)/*.o
 	@rm -f $(CURDIR)/libag.so
-	@rm -f $(CURDIR)/tets
+	@rm -f $(CURDIR)/test

@@ -44,10 +44,13 @@ typedef struct work_queue_t work_queue_t;
 work_queue_t *work_queue;
 work_queue_t *work_queue_tail;
 int done_adding_files;
+int stop_workers;
 pthread_cond_t files_ready;
 pthread_mutex_t stats_mtx;
 pthread_mutex_t work_queue_mtx;
 
+pthread_barrier_t worker_done;
+pthread_barrier_t results_done;
 
 /* For symlink loop detection */
 #define SYMLOOP_ERROR (-1)
@@ -66,13 +69,21 @@ typedef struct {
 
 symdir_t *symhash;
 
-void search_buf(const char *buf, const size_t buf_len,
+void search_buf(int worker_id, const char *buf, const size_t buf_len,
                 const char *dir_full_path);
-void search_stream(FILE *stream, const char *path);
-void search_file(const char *file_full_path);
+void search_stream(int worker_id, FILE *stream, const char *path);
+void search_file(int worker_id, const char *file_full_path);
 
 void *search_file_worker(void *i);
 
 void search_dir(ignores *ig, const char *base_path, const char *path, const int depth, dev_t original_dev);
+
+/* libag 'private' routines and variables. */
+extern int add_local_result(int worker_id, const char *file,
+    const match_t matches[], const size_t matches_len,
+    const char *buf);
+
+extern int init_local_results(int worker_id);
+extern int has_ag_init;
 
 #endif

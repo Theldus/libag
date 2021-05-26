@@ -25,10 +25,35 @@
 #ifndef LIBAG_H
 #define LIBAG_H
 
+	#include <stddef.h>
+
+	/* Num workers. */
+	#define NUM_WORKERS 8
+
+	/**
+	 *
+	 */
+	struct ag_result
+	{
+		char *file;
+		size_t nmatches;
+		struct ag_match
+		{
+			size_t byte_start;
+			size_t byte_end;
+			char *match;
+		} **matches;
+	};
+
+	/* Library forward declarations. */
 	extern int ag_start_workers(void);
 	extern int ag_stop_workers(void);
 	extern int ag_init(void);
 	extern int ag_finish(void);
-	extern int ag_search(char *query, int npaths, char **target_paths);
+	extern struct ag_result **ag_search(char *query, int npaths,
+		char **target_paths, size_t *nresults);
+	extern void ag_free_result(struct ag_result *result);
+	extern void ag_free_all_results(struct ag_result **results,
+		size_t nresults);
 
-#endif
+#endif /* LIBAG_H. */

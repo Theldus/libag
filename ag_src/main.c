@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
     }
 
     if (opts.search_stream) {
-        search_stream(stdin, "");
+        search_stream(0, stdin, "");
     } else {
         for (i = 0; i < workers_len; i++) {
             workers[i].id = i;

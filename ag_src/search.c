@@ -2,7 +2,9 @@
 #include "print.h"
 #include "scandir.h"
 
-void search_buf(const char *buf, const size_t buf_len,
+#include "../libag.h"
+
+void search_buf(int worker_id, const char *buf, const size_t buf_len,
                 const char *dir_full_path) {
     int binary = -1; /* 1 = yes, 0 = no, -1 = don't know */
     size_t buf_offset = 0;
@@ -197,7 +199,11 @@ multiline_done:
         } else if (binary) {
             print_binary_file_matches(dir_full_path);
         } else {
-            print_file_matches(dir_full_path, buf, buf_len, matches, matches_len);
+            if (has_ag_init) {
+                add_local_result(worker_id, dir_full_path, matches, matches_len, buf);
+            } else {
+                print_file_matches(dir_full_path, buf, buf_len, matches, matches_len);
+            }
         }
         pthread_mutex_unlock(&print_mtx);
         opts.match_found = 1;
@@ -217,7 +223,7 @@ multiline_done:
 }
 
 /* TODO: this will only match single lines. multi-line regexes silently don't match */
-void search_stream(FILE *stream, const char *path) {
+void search_stream(int worker_id, FILE *stream, const char *path) {
     char *line = NULL;
     ssize_t line_len = 0;
     size_t line_cap = 0;
@@ -227,7 +233,7 @@ void search_stream(FILE *stream, const char *path) {
 
     for (i = 1; (line_len = getline(&line, &line_cap, stream)) > 0; i++) {
         opts.stream_line_num = i;
-        search_buf(line, line_len, path);
+        search_buf(worker_id, line, line_len, path);
         if (line[line_len - 1] == '\n') {
             line_len--;
         }
@@ -238,7 +244,7 @@ void search_stream(FILE *stream, const char *path) {
     print_cleanup_context();
 }
 
-void search_file(const char *file_full_path) {
+void search_file(int worker_id, const char *file_full_path) {
     int fd = -1;
     off_t f_len = 0;
     char *buf = NULL;
@@ -293,7 +299,7 @@ void search_file(const char *file_full_path) {
     if (statbuf.st_mode & S_IFIFO) {
         log_debug("%s is a named pipe. stream searching", file_full_path);
         fp = fdopen(fd, "r");
-        search_stream(fp, file_full_path);
+        search_stream(worker_id, fp, file_full_path);
         fclose(fp);
         goto cleanup;
     }
@@ -302,7 +308,7 @@ void search_file(const char *file_full_path) {
 
     if (f_len == 0) {
         if (opts.query[0] == '.' && opts.query_len == 1 && !opts.literal && opts.search_all_files) {
-            search_buf(buf, f_len, file_full_path);
+            search_buf(worker_id, buf, f_len, file_full_path);
         } else {
             log_debug("Skipping %s: file is empty.", file_full_path);
         }
@@ -374,7 +380,7 @@ void search_file(const char *file_full_path) {
 #if HAVE_FOPENCOOKIE
             log_debug("%s is a compressed file. stream searching", file_full_path);
             fp = decompress_open(fd, "r", zip_type);
-            search_stream(fp, file_full_path);
+            search_stream(worker_id, fp, file_full_path);
             fclose(fp);
 #else
             int _buf_len = (int)f_len;
@@ -383,14 +389,14 @@ void search_file(const char *file_full_path) {
                 log_err("Cannot decompress zipped file %s", file_full_path);
                 goto cleanup;
             }
-            search_buf(_buf, _buf_len, file_full_path);
+            search_buf(worker_id, _buf, _buf_len, file_full_path);
             free(_buf);
 #endif
             goto cleanup;
         }
     }
 
-    search_buf(buf, f_len, file_full_path);
+    search_buf(worker_id, buf, f_len, file_full_path);
 
 cleanup:
 
@@ -418,13 +424,25 @@ void *search_file_worker(void *i) {
     int worker_id = *(int *)i;
 
     log_debug("Worker %i started", worker_id);
+
+loop:
     while (TRUE) {
         pthread_mutex_lock(&work_queue_mtx);
         while (work_queue == NULL) {
             if (done_adding_files) {
                 pthread_mutex_unlock(&work_queue_mtx);
-                log_debug("Worker %i finished.", worker_id);
-                pthread_exit(NULL);
+                log_debug("Worker %i done, restarting again...", worker_id);
+                if (has_ag_init) {
+                    if (stop_workers)
+                        return (NULL);
+
+                    /* Signals that my work is done and wait for the master. */
+                    pthread_barrier_wait(&worker_done);
+                    pthread_barrier_wait(&results_done);
+                    goto loop;
+                } else {
+                    return (NULL);
+                }
             }
             pthread_cond_wait(&files_ready, &work_queue_mtx);
         }
@@ -435,7 +453,7 @@ void *search_file_worker(void *i) {
         }
         pthread_mutex_unlock(&work_queue_mtx);
 
-        search_file(queue_item->path);
+        search_file(worker_id, queue_item->path);
         free(queue_item->path);
         free(queue_item);
     }
@@ -561,7 +579,10 @@ void search_dir(ignores *ig, const char *base_path, const char *path, const int 
                     opts.print_line_numbers = FALSE;
                 }
             }
-            search_file(path);
+
+            /* Since the local thread can also do search, we need to differentiate its
+             * worker_id from the others. */
+            search_file(NUM_WORKERS, path);
         } else {
             log_err("Error opening directory %s: %s", path, strerror(errno));
         }

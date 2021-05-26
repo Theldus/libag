@@ -60,7 +60,361 @@ static int workers_len;
 /**
  *
  */
-static int has_ag_init;
+int has_ag_init;
+
+/**
+ *
+ */
+static struct thrd_result
+{
+	size_t capacity;
+	size_t nresults;
+	struct ag_result **results;
+} thrd_rslt[NUM_WORKERS + 1] = {0};
+
+/*
+ * ============================================================================
+ * Util
+ * ============================================================================
+ */
+
+/**
+ *
+ */
+static int reset_local_results(int reset)
+{
+	int i;
+	for (i = 0; i <= NUM_WORKERS; i++)
+	{
+		thrd_rslt[i].capacity = 100;
+		thrd_rslt[i].nresults = 0;
+
+		if (thrd_rslt[i].results)
+		{
+			free(thrd_rslt[i].results);
+			thrd_rslt[i].results = NULL;
+		}
+
+		if (reset)
+		{
+			thrd_rslt[i].results = calloc(100, sizeof(struct ag_result *));
+			if (!thrd_rslt[i].results)
+				return (-1);
+		}
+	}
+	return (0);
+}
+
+/**
+ *
+ */
+int add_local_result(int worker_id, const char *file,
+	const match_t matches[], const size_t matches_len,
+	const char *buf)
+{
+	struct thrd_result *t_rslt;
+	struct ag_result **ag_rslt;
+	size_t i;
+	int idx;
+
+	if (!matches_len)
+		return (0);
+
+	t_rslt  = &thrd_rslt[worker_id];
+	ag_rslt = t_rslt->results;
+
+	/* Grow. */
+	if (t_rslt->nresults >= t_rslt->capacity)
+	{
+		ag_rslt = realloc(ag_rslt,
+			sizeof(struct ag_result *) * (t_rslt->capacity * 2));
+		if (!ag_rslt)
+			return (-1);
+
+		t_rslt->results   = ag_rslt;
+		t_rslt->capacity *= 2;
+	}
+
+	idx = t_rslt->nresults;
+
+	/* Allocate and add a new result. */
+	ag_rslt[idx] = malloc(sizeof(struct ag_result));
+	if (!ag_rslt[idx])
+		return (-1);
+
+	ag_rslt[idx]->file = strdup(file);
+	if (!ag_rslt[idx]->file)
+		return (-1);
+
+	ag_rslt[idx]->nmatches = matches_len;
+
+	/* Allocate and adds the matches into the matches list. */
+	ag_rslt[idx]->matches = malloc(sizeof(struct ag_match *) * matches_len);
+	if (!ag_rslt[idx]->matches)
+		return (-1);
+
+	for (i = 0; i < matches_len; i++)
+	{
+		ag_rslt[idx]->matches[i] = malloc(sizeof(struct ag_match));
+		ag_rslt[idx]->matches[i]->byte_start = matches[i].start;
+		ag_rslt[idx]->matches[i]->byte_end = matches[i].end - 1;
+
+		/* Reserve space for the match string and copy. */
+		ag_rslt[idx]->matches[i]->match = calloc(1,
+			sizeof(char) * ((matches[i].end - matches[i].start) + 1));
+
+		if (!ag_rslt[idx]->matches[i]->match)
+			return (-1);
+
+		memcpy(ag_rslt[idx]->matches[i]->match, buf + matches[i].start,
+			(matches[i].end - matches[i].start));
+	}
+
+	t_rslt->nresults++;
+	return (0);
+}
+
+/**
+ *
+ */
+static struct ag_result **get_thrd_results(size_t *nresults_ret)
+{
+	struct ag_result **rslt;
+	size_t nresults;
+	size_t i, j, idx;
+
+	nresults = 0;
+
+	/* Get the results amount. */
+	for (i = 0; i <= NUM_WORKERS; i++)
+		if (thrd_rslt[i].nresults)
+			nresults += thrd_rslt[i].nresults;
+
+	/* Allocate results. */
+	idx  = 0;
+	rslt = malloc(sizeof(struct ag_result *) * nresults);
+	if (!rslt)
+		return (NULL);
+
+	/* Add the results. */
+	for (i = 0; i <= NUM_WORKERS; i++)
+		if (thrd_rslt[i].nresults)
+			for (j = 0; j < thrd_rslt[i].nresults; j++)
+				rslt[idx++] = thrd_rslt[i].results[j];
+
+	*nresults_ret = nresults;
+	return (rslt);
+}
+
+/**
+ *
+ */
+static int setup_search(void)
+{
+	int study_opts;
+	int pcre_opts;
+
+	study_opts = 0;
+	pcre_opts  = PCRE_MULTILINE;
+
+	/* Enable JIT if possible. */
+#ifdef USE_PCRE_JIT
+	int has_jit = 0;
+	pcre_config(PCRE_CONFIG_JIT, &has_jit);
+	if (has_jit)
+		study_opts |= PCRE_STUDY_JIT_COMPILE;
+#endif
+
+	/* If smart case. */
+	if (opts.casing == CASE_SMART)
+	{
+		opts.casing = is_lowercase(opts.query) ?
+			CASE_INSENSITIVE : CASE_SENSITIVE;
+	}
+
+	/* Check if regex. */
+	if (!is_regex(opts.query))
+		opts.literal = 1;
+
+	if (opts.literal)
+	{
+		if (opts.casing == CASE_INSENSITIVE)
+		{
+			/* Search routine needs the query to be lowercase */
+			char *c = opts.query;
+			for (; *c != '\0'; ++c)
+				*c = (char)tolower(*c);
+		}
+		generate_alpha_skip(opts.query, opts.query_len, alpha_skip_lookup,
+			opts.casing == CASE_SENSITIVE);
+		find_skip_lookup = NULL;
+		generate_find_skip(opts.query, opts.query_len, &find_skip_lookup,
+			opts.casing == CASE_SENSITIVE);
+		generate_hash(opts.query, opts.query_len, h_table,
+			opts.casing == CASE_SENSITIVE);
+    }
+
+    /* Regex. */
+    else
+    {
+    	if (opts.casing == CASE_INSENSITIVE)
+			pcre_opts |= PCRE_CASELESS;
+
+		/* Configure regex stuff. */
+		compile_study(&opts.re, &opts.re_extra, opts.query, pcre_opts,
+			study_opts);
+	}
+
+	return (0);
+}
+
+/**
+ *
+ */
+static int prepare_paths(int npaths, char **tpaths, char **base_paths[],
+	char **paths[])
+{
+	int base_path_len;
+	char *base_path;
+	int path_len;
+	char *path;
+	size_t i;
+
+#ifdef PATH_MAX
+	char *tmp = NULL;
+#endif
+
+	base_path_len = 0;
+	path_len      = 0;
+	base_path     = NULL;
+	path          = NULL;
+
+	/* Multiples files and folders. */
+	if (npaths > 0)
+	{
+		*paths = calloc(sizeof(char *), npaths + 1);
+		if (!*paths)
+			return (-1);
+
+		*base_paths = calloc(sizeof(char *), npaths + 1);
+		if (!*base_paths)
+			return (-1);
+
+		for (i = 0; i < (size_t)npaths; i++)
+		{
+			path = strdup(tpaths[i]);
+			if (!path)
+				return (-1);
+
+			path_len = strlen(path);
+
+			/* Kill trailing slash. */
+			if (path_len > 1 && path[path_len - 1] == '/')
+				path[path_len - 1] = '\0';
+
+			(*paths)[i] = path;
+#ifdef PATH_MAX
+			tmp = malloc(PATH_MAX);
+			if (!tmp)
+				return (-1);
+
+			base_path = realpath(path, tmp);
+#else
+			base_path = realpath(path, NULL);
+#endif
+			if (base_path)
+			{
+				base_path_len = strlen(base_path);
+
+				/* Add trailing slash. */
+				if (base_path_len > 1 && base_path[base_path_len - 1] != '/')
+				{
+					base_path = ag_realloc(base_path, base_path_len + 2);
+					base_path[base_path_len] = '/';
+					base_path[base_path_len + 1] = '\0';
+				}
+			}
+			(*base_paths)[i] = base_path;
+		}
+
+        /* Make sure we search these paths instead of stdin. */
+		opts.search_stream = 0;
+	}
+
+	/* Use current folder. */
+	else
+	{
+		path = strdup(".");
+		if (!path)
+			return (-1);
+		*paths = malloc(sizeof(char *) * 2);
+		if (!*paths)
+			return (-1);
+
+		*base_paths = malloc(sizeof(char *) * 2);
+		if (*base_paths)
+			return (-1);
+
+		(*paths)[0] = path;
+
+#ifdef PATH_MAX
+		tmp = malloc(PATH_MAX);
+		if (!tmp)
+			return (-1);
+		(*base_paths)[0] = realpath(path, tmp);
+#else
+		(*base_paths)[0] = realpath(path, NULL);
+#endif
+		i = 1;
+	}
+
+	(*paths)[i] = NULL;
+    (*base_paths)[i] = NULL;
+
+    /* Set paths len. */
+    opts.paths_len = npaths;
+
+    return (0);
+}
+
+/*
+ * ============================================================================
+ * Library exported routines
+ * ============================================================================
+ */
+
+/**
+ *
+ */
+int ag_init(void)
+{
+	set_log_level(LOG_LEVEL_WARN);
+	root_ignores = init_ignore(NULL, "", 0);
+
+	out_fd = stdout;
+
+	/* Initialize default options. */
+	init_options();
+
+	/* Start workers. */
+	if (ag_start_workers())
+		return (-1);
+
+	has_ag_init = 1;
+	return (0);
+}
+
+/**
+ *
+ */
+int ag_finish(void)
+{
+	cleanup_options();
+	ag_stop_workers();
+	has_ag_init = 0;
+	return (0);
+}
+
 
 /**
  *
@@ -94,9 +448,12 @@ int ag_start_workers(void)
 		workers_len = 1;
 
 	done_adding_files = FALSE;
+	stop_workers = FALSE;
 
 	/* Initialize workers & mutexes. */
-	workers = ag_calloc(workers_len, sizeof(worker_t));
+	workers = calloc(workers_len, sizeof(worker_t));
+	if (!workers)
+		return (-1);
 	if (pthread_cond_init(&files_ready, NULL))
 		goto err1;
 	if (pthread_mutex_init(&print_mtx, NULL))
@@ -106,8 +463,12 @@ int ag_start_workers(void)
 	if (pthread_mutex_init(&work_queue_mtx, NULL))
 		goto err4;
 
+	/* Reset per-thread local results. */
+	if (reset_local_results(1))
+		goto err5;
+
     /* Start workers and wait for something. */
-	for (i = 0; i < num_cores; i++)
+	for (i = 0; i < workers_len; i++)
 	{
 		workers[i].id = i;
 		int rv = pthread_create(&(workers[i].thread), NULL, &search_file_worker,
@@ -129,7 +490,7 @@ err2:
 	pthread_cond_destroy(&files_ready);
 err1:
 	free(workers);
-	return (1);
+	return (-1);
 }
 
 /**
@@ -142,18 +503,20 @@ int ag_stop_workers(void)
 	/* Whatever the workers are doing, we need to stop them. */
 	pthread_mutex_lock(&work_queue_mtx);
 		done_adding_files = TRUE;
+		stop_workers = TRUE;
 		pthread_cond_broadcast(&files_ready);
 	pthread_mutex_unlock(&work_queue_mtx);
 
 	for (i = 0; i < workers_len; i++)
 		if (pthread_join(workers[i].thread, NULL))
-			return (1);
+			return (-1);
 
 	/* Clean resources. */
 	pthread_cond_destroy(&files_ready);
 	pthread_mutex_destroy(&work_queue_mtx);
 	pthread_mutex_destroy(&print_mtx);
 	cleanup_ignore(root_ignores);
+	reset_local_results(0);
 	free(workers);
 
 	return (0);
@@ -162,178 +525,43 @@ int ag_stop_workers(void)
 /**
  *
  */
-static int setup_search(void)
+struct ag_result **ag_search(char *query, int npaths, char **target_paths,
+	size_t *nresults)
 {
-	int study_opts;
-	int pcre_opts;
-
-	study_opts = 0;
-	pcre_opts  = PCRE_MULTILINE;
-
-	/* Enable JIT if possible. */
-#ifdef USE_PCRE_JIT
-	int has_jit = 0;
-	pcre_config(PCRE_CONFIG_JIT, &has_jit);
-	if (has_jit)
-		study_opts |= PCRE_STUDY_JIT_COMPILE;
-#endif
-
-	/* Configure regex stuff. */
-	compile_study(&opts.re, &opts.re_extra, opts.query, pcre_opts,
-		study_opts);
-
-	return (0);
-}
-
-/**
- *
- */
-static int prepare_paths(int npaths, char **tpaths, char **base_paths[],
-	char **paths[])
-{
-	int base_path_len;
-	char *base_path;
-	int path_len;
-	char *path;
-	size_t i;
-
-#ifdef PATH_MAX
-	char *tmp = NULL;
-#endif
-
-	base_path_len = 0;
-	path_len      = 0;
-	base_path     = NULL;
-	path          = NULL;
-
-	/* Multiples files and folders. */
-	if (npaths > 0)
-	{
-		*paths = ag_calloc(sizeof(char *), npaths + 1);
-		*base_paths = ag_calloc(sizeof(char *), npaths + 1);
-
-		for (i = 0; i < (size_t)npaths; i++)
-		{
-			path = ag_strdup(tpaths[i]);
-			path_len = strlen(path);
-
-			/* Kill trailing slash. */
-			if (path_len > 1 && path[path_len - 1] == '/')
-				path[path_len - 1] = '\0';
-
-			(*paths)[i] = path;
-#ifdef PATH_MAX
-			tmp = ag_malloc(PATH_MAX);
-			base_path = realpath(path, tmp);
-#else
-			base_path = realpath(path, NULL);
-#endif
-			if (base_path)
-			{
-				base_path_len = strlen(base_path);
-
-				/* Add trailing slash. */
-				if (base_path_len > 1 && base_path[base_path_len - 1] != '/')
-				{
-					base_path = ag_realloc(base_path, base_path_len + 2);
-					base_path[base_path_len] = '/';
-					base_path[base_path_len + 1] = '\0';
-				}
-			}
-			(*base_paths)[i] = base_path;
-		}
-
-        /* Make sure we search these paths instead of stdin. */
-		opts.search_stream = 0;
-	}
-
-	/* Use current folder. */
-	else
-	{
-		path = ag_strdup(".");
-		*paths = ag_malloc(sizeof(char *) * 2);
-		*base_paths = ag_malloc(sizeof(char *) * 2);
-		(*paths)[0] = path;
-
-#ifdef PATH_MAX
-		tmp = ag_malloc(PATH_MAX);
-		(*base_paths)[0] = realpath(path, tmp);
-#else
-		(*base_paths)[0] = realpath(path, NULL);
-#endif
-		i = 1;
-	}
-
-	(*paths)[i] = NULL;
-    (*base_paths)[i] = NULL;
-
-    /* Set paths len. */
-    opts.paths_len = npaths;
-
-    return (0);
-}
-
-/**
- *
- */
-int ag_init(void)
-{
-	set_log_level(LOG_LEVEL_WARN);
-	root_ignores = init_ignore(NULL, "", 0);
-
-	out_fd = stdout;
-
-	/* Initialize default options. */
-	init_options();
-
-	/* Start workers. */
-	if (ag_start_workers())
-		return (1);
-
-	has_ag_init = 1;
-	return (0);
-}
-
-/**
- *
- */
-int ag_finish(void)
-{
-	cleanup_options();
-	ag_stop_workers();
-	return (0);
-}
-
-/**
- *
- */
-int ag_search(char *query, int npaths, char **target_paths)
-{
+	struct ag_result **result;
 	char **base_paths;
 	char **paths;
 	int i;
 
+	result = NULL;
+
 	/* Check if libag was initialized. */
 	if (!has_ag_init)
-		return (1);
+		return (NULL);
 
 	/* Query and valid paths. */
 	if (!query || !target_paths)
-		return (1);
+		return (NULL);
 
-	base_paths = NULL;
-	paths = NULL;
+	/* Initialize our barrier. */
+	pthread_barrier_init(&worker_done, NULL, workers_len + 1);
+	pthread_barrier_init(&results_done, NULL, workers_len + 1);
 
 	/* Prepare query. */
 	if (opts.query)
 		free(query);
-	opts.query = ag_strdup(query);
+	opts.query = strdup(query);
+	if (!opts.query)
+		goto err1;
 	opts.query_len = strlen(query);
 
 	/* Configure search settings. */
+	opts.casing = CASE_SMART;
 	setup_search();
 
 	/* Prepare our paths and base_paths. */
+	base_paths = NULL;
+	paths = NULL;
 	prepare_paths(npaths, target_paths, &base_paths, &paths);
 
 	/* Search everything. */
@@ -351,7 +579,7 @@ int ag_search(char *query, int npaths, char **target_paths)
 		 */
 		if (opts.one_dev && lstat(paths[i], &s) == -1)
 		{
-			log_err("Failed to get device information for path %s. Skaipping...",
+			log_err("Failed to get device information for path %s. Skipping...",
 				paths[i]);
 		}
 #endif
@@ -359,5 +587,69 @@ int ag_search(char *query, int npaths, char **target_paths)
 		cleanup_ignore(ig);
 	}
 
-	return (0);
+	/* Wakeup threads and let them known that work is done. */
+	pthread_mutex_lock(&work_queue_mtx);
+		done_adding_files = TRUE;
+		pthread_cond_broadcast(&files_ready);
+	pthread_mutex_unlock(&work_queue_mtx);
+
+	/* Wait to complete. */
+	pthread_barrier_wait(&worker_done);
+
+	/* Work. */
+	result = get_thrd_results(nresults);
+
+	/* Reset & wakeup workers again to wait for more work. */
+	reset_local_results(1);
+	done_adding_files = FALSE;
+	pthread_barrier_wait(&results_done);
+
+	/* Cleanup paths. */
+	for (i = 0; paths[i] != NULL; i++)
+	{
+		free(paths[i]);
+		free(base_paths[i]);
+	}
+	free(base_paths);
+	free(paths);
+	if (find_skip_lookup)
+		free(find_skip_lookup);
+
+	/* Cleanup query. */
+	free(opts.query);
+	opts.query = NULL;
+
+err1:
+	/* Cleanup barriers. */
+	pthread_barrier_destroy(&worker_done);
+	pthread_barrier_destroy(&results_done);
+
+	return (result);
+}
+
+/**
+ *
+ */
+void ag_free_result(struct ag_result *result)
+{
+	size_t i;
+	for (i = 0; i < result->nmatches; i++)
+	{
+		free(result->matches[i]->match);
+		free(result->matches[i]);
+	}
+	free(result->matches);
+	free(result->file);
+	free(result);
+}
+
+/**
+ *
+ */
+void ag_free_all_results(struct ag_result **results, size_t nresults)
+{
+	size_t i;
+	for (i = 0; i < nresults; i++)
+		ag_free_result(results[i]);
+	free(results);
 }
