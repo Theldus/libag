@@ -31,9 +31,9 @@
 #include "uthash.h"
 #include "util.h"
 
-size_t alpha_skip_lookup[256];
-size_t *find_skip_lookup;
-uint8_t h_table[H_SIZE] __attribute__((aligned(64)));
+extern size_t alpha_skip_lookup[256];
+extern size_t *find_skip_lookup;
+extern uint8_t h_table[H_SIZE] __attribute__((aligned(64)));
 
 struct work_queue_t {
     char *path;
@@ -41,16 +41,16 @@ struct work_queue_t {
 };
 typedef struct work_queue_t work_queue_t;
 
-work_queue_t *work_queue;
-work_queue_t *work_queue_tail;
-int done_adding_files;
-int stop_workers;
-pthread_cond_t files_ready;
-pthread_mutex_t stats_mtx;
-pthread_mutex_t work_queue_mtx;
+extern work_queue_t *work_queue;
+extern work_queue_t *work_queue_tail;
+extern int done_adding_files;
+extern int stop_workers;
+extern pthread_cond_t files_ready;
+extern pthread_mutex_t stats_mtx;
+extern pthread_mutex_t work_queue_mtx;
 
-pthread_barrier_t worker_done;
-pthread_barrier_t results_done;
+extern pthread_barrier_t worker_done;
+extern pthread_barrier_t results_done;
 
 /* For symlink loop detection */
 #define SYMLOOP_ERROR (-1)
@@ -67,7 +67,7 @@ typedef struct {
     UT_hash_handle hh;
 } symdir_t;
 
-symdir_t *symhash;
+extern symdir_t *symhash;
 
 void search_buf(int worker_id, const char *buf, const size_t buf_len,
                 const char *dir_full_path);

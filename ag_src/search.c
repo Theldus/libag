@@ -4,6 +4,23 @@
 
 #include "../libag.h"
 
+work_queue_t *work_queue;
+work_queue_t *work_queue_tail;
+int done_adding_files;
+int stop_workers;
+pthread_cond_t files_ready;
+pthread_mutex_t stats_mtx;
+pthread_mutex_t work_queue_mtx;
+
+pthread_barrier_t worker_done;
+pthread_barrier_t results_done;
+
+symdir_t *symhash;
+
+size_t alpha_skip_lookup[256];
+size_t *find_skip_lookup;
+uint8_t h_table[H_SIZE] __attribute__((aligned(64)));
+
 void search_buf(int worker_id, const char *buf, const size_t buf_len,
                 const char *dir_full_path) {
     int binary = -1; /* 1 = yes, 0 = no, -1 = don't know */
