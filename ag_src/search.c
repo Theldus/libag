@@ -197,7 +197,9 @@ multiline_done:
         if (binary == -1 && !opts.print_filename_only) {
             binary = is_binary((const void *)buf, buf_len);
         }
-        pthread_mutex_lock(&print_mtx);
+        if (!has_ag_init) {
+            pthread_mutex_lock(&print_mtx);
+        }
         if (opts.print_filename_only) {
             /* If the --files-without-matches or -L option is passed we should
              * not print a matching line. This option currently sets
@@ -222,7 +224,9 @@ multiline_done:
                 print_file_matches(dir_full_path, buf, buf_len, matches, matches_len);
             }
         }
-        pthread_mutex_unlock(&print_mtx);
+        if (!has_ag_init) {
+            pthread_mutex_unlock(&print_mtx);
+        }
         opts.match_found = 1;
     } else if (opts.search_stream && opts.passthrough) {
         fprintf(out_fd, "%s", buf);
