@@ -208,6 +208,7 @@ static struct ag_result **get_thrd_results(size_t *nresults_ret)
 	size_t nresults;
 	size_t i, j, idx;
 
+	rslt = NULL;
 	nresults = 0;
 
 	/* Get the results amount. */
@@ -217,20 +218,20 @@ static struct ag_result **get_thrd_results(size_t *nresults_ret)
 
 	/* If nothing is found, return NULL. */
 	if (!nresults)
-		return (NULL);
+		goto out;
 
 	/* Allocate results. */
 	idx  = 0;
 	rslt = malloc(sizeof(struct ag_result *) * nresults);
 	if (!rslt)
-		return (NULL);
+		goto out;
 
 	/* Add the results. */
 	for (i = 0; i <= NUM_WORKERS; i++)
 		if (thrd_rslt[i].nresults)
 			for (j = 0; j < thrd_rslt[i].nresults; j++)
 				rslt[idx++] = thrd_rslt[i].results[j];
-
+out:
 	*nresults_ret = nresults;
 	return (rslt);
 }
@@ -715,6 +716,8 @@ err1:
 void ag_free_result(struct ag_result *result)
 {
 	size_t i;
+	if (!result)
+		return;
 	for (i = 0; i < result->nmatches; i++)
 	{
 		free(result->matches[i]->match);
@@ -735,6 +738,8 @@ void ag_free_result(struct ag_result *result)
 void ag_free_all_results(struct ag_result **results, size_t nresults)
 {
 	size_t i;
+	if (!results || !nresults)
+		return;
 	for (i = 0; i < nresults; i++)
 		ag_free_result(results[i]);
 	free(results);
