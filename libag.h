@@ -31,7 +31,8 @@
 	#define NUM_WORKERS 8
 
 	/**
-	 *
+	 * Structure that holds a single result, i.e: a file
+	 * that may contains multiples matches.
 	 */
 	struct ag_result
 	{

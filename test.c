@@ -39,12 +39,14 @@ int main(int argc, char **argv)
 	/* Initiate Ag library with default options. */
 	ag_init();
 
+	/* Search. */
 	results = ag_search(argv[1], argc - 2, argv + 2, &nresults);
 	if (!results)
 		printf("no result found\n");
 	else
 		printf("%d results found\n", nresults);
 
+	/* Show them on the screen, if any. */
 	for (int i = 0; i < nresults; i++)
 	{
 		for (int j = 0; j < results[i]->nmatches; j++)
@@ -56,6 +58,7 @@ int main(int argc, char **argv)
 		}
 	}
 
+	/* Free all resources. */
 	ag_free_all_results(results, nresults);
 
 	/* Release Ag resources. */

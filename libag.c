@@ -52,18 +52,22 @@ typedef struct {
 } worker_t;
 
 /**
- *
+ * @brief Worker list.
  */
 static worker_t *workers;
 static int workers_len;
 
 /**
- *
+ * @brief Indicator that Ag is being used as a library.
  */
 int has_ag_init;
 
 /**
- *
+ * @brief Per-thread result: here contains the partial
+ * output that will be returned from ag_search. The
+ * idea is that each worker can safely work separately
+ * on its own result list that latter will be joined in
+ * a single list.
  */
 static struct thrd_result
 {
@@ -79,7 +83,13 @@ static struct thrd_result
  */
 
 /**
+ * @brief Reset the per-thread result for its default
+ * values.
  *
+ * @param reset If != 0, allocates new memory for the list,
+ *              if 0, do the default behavior.
+ *
+ * @return Return 0 if success, -1 otherwise.
  */
 static int reset_local_results(int reset)
 {
@@ -106,7 +116,17 @@ static int reset_local_results(int reset)
 }
 
 /**
+ * @brief For a given number of matches @p matches_len
+ * in the current processed file @p file, save the
+ * findings in the per-thread result.
  *
+ * @param worker_id Current thread.
+ * @param file Processed file with the matches found.
+ * @param matches Matches list.
+ * @param matches_len Matches list length.
+ * @param buf File read buffer.
+ *
+ * @return Returns 0 if success, -1 otherwise.
  */
 int add_local_result(int worker_id, const char *file,
 	const match_t matches[], const size_t matches_len,
@@ -175,7 +195,12 @@ int add_local_result(int worker_id, const char *file,
 }
 
 /**
+ * @brief Join all the per-thread results into a single list
+ * and returns it.
  *
+ * @param nresults_ret Number of results pointer.
+ *
+ * @return Returns all the results found.
  */
 static struct ag_result **get_thrd_results(size_t *nresults_ret)
 {
@@ -189,6 +214,10 @@ static struct ag_result **get_thrd_results(size_t *nresults_ret)
 	for (i = 0; i <= NUM_WORKERS; i++)
 		if (thrd_rslt[i].nresults)
 			nresults += thrd_rslt[i].nresults;
+
+	/* If nothing is found, return NULL. */
+	if (!nresults)
+		return (NULL);
 
 	/* Allocate results. */
 	idx  = 0;
@@ -207,7 +236,11 @@ static struct ag_result **get_thrd_results(size_t *nresults_ret)
 }
 
 /**
+ * @brief Configure Ag for a new search.
  *
+ * This should be invoked at each new search.
+ *
+ * @return Returns 0 if success, -1 otherwise.
  */
 static int setup_search(void)
 {
@@ -269,7 +302,15 @@ static int setup_search(void)
 }
 
 /**
+ * @brief For a given list of paths @p tpaths, generates a list
+ * of paths and base paths.
  *
+ * @param npaths Number of paths in @p tpaths.
+ * @param tpaths Paths to be searched.
+ * @param base_path Returned base paths pointer.
+ * @param paths Returned paths pointer.
+ *
+ * @return Returns 0 if success, -1 otherwise.
  */
 static int prepare_paths(int npaths, char **tpaths, char **base_paths[],
 	char **paths[])
@@ -384,7 +425,9 @@ static int prepare_paths(int npaths, char **tpaths, char **base_paths[],
  */
 
 /**
+ * @brief Initializes libag with default settings.
  *
+ * @return Returns 0 if success, -1 otherwise.
  */
 int ag_init(void)
 {
@@ -405,7 +448,17 @@ int ag_init(void)
 }
 
 /**
+ * @brief Finishes, i.e, releases all* resources belonging
+ * to Ag/libag.
  *
+ * @return Returns 0 if success, -1 otherwise.
+ *
+ * @note *It is up to the user to release all the memory
+ * relative to the results found. This memory can be
+ * released with the use of the helper functions @ref
+ * ag_free_result and @ref ag_free_all_results. For more
+ * 'fine-grained' memory release, the user can manually
+ * iterate over the structures and release with 'free'.
  */
 int ag_finish(void)
 {
@@ -417,7 +470,18 @@ int ag_finish(void)
 
 
 /**
+ * @brief Start the worker threads for libag.
  *
+ * This is called by @ref ag_init and there is no need
+ * to call this manually. However, a more experienced
+ * may want to control whether to start/stop the worker
+ * threads. By default, all worker threads will be
+ * spawned at @ref ag_init and deleted with @ref ag_finish.
+ *
+ * If a user wants to call @ref ag_search multiples times,
+ * maybe it is interesting to keep the workers all the time.
+ *
+ * @return Returns 0 if success, -1 otherwise.
  */
 int ag_start_workers(void)
 {
@@ -494,7 +558,9 @@ err1:
 }
 
 /**
+ * @brief Stops all workers and cleanup resources.
  *
+ * @return Returns 0 if success, -1 otherwise.
  */
 int ag_stop_workers(void)
 {
@@ -523,7 +589,21 @@ int ag_stop_workers(void)
 }
 
 /**
+ * @brief Searches for @p query recursively in all @p target_paths.
  *
+ * Thats the main routine for libag and the one that the users want
+ * to use.
+ *
+ * @param query Pattern to be searched.
+ * @param npaths Number of paths to be searched.
+ * @param target_paths Paths list.
+ * @param nresults Pointer to number of results found.
+ *
+ * @return Returns a list of (struct ag_result*) containing all
+ * the results found. Please note that this result is up to the
+ * user to free, with @ref ag_free_result and @ref ag_free_all_results.
+ *
+ * If nothing is found, return NULL.
  */
 struct ag_result **ag_search(char *query, int npaths, char **target_paths,
 	size_t *nresults)
@@ -628,7 +708,9 @@ err1:
 }
 
 /**
+ * @brief For a given @p result, free a single result from libag.
  *
+ * @param result Single result.
  */
 void ag_free_result(struct ag_result *result)
 {
@@ -644,7 +726,11 @@ void ag_free_result(struct ag_result *result)
 }
 
 /**
+ * @brief For a given @p results and @p nresults, free all
+ * results returned from @ref ag_search.
  *
+ * @param results Results list to be freed.
+ * @param nresults Results list length.
  */
 void ag_free_all_results(struct ag_result **results, size_t nresults)
 {
