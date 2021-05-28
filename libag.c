@@ -454,6 +454,9 @@ int ag_set_config(struct ag_config *ag_config)
 	if (ag_config->casing < 0 || ag_config->casing > 2)
 		return (-1);
 	opts.casing = ag_config->casing;
+	if (ag_config->num_workers < 0 || ag_config->num_workers > NUM_WORKERS)
+		return (-1);
+	opts.workers = ag_config->num_workers;
 	memcpy(&config, ag_config, sizeof(struct ag_config));
 	return (0);
 }

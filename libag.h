@@ -118,6 +118,16 @@
 		 */
 		int casing;
 		/*
+		 * Number of concurrently workers (threads) running at the same time.
+		 *
+		 * 0 (default): uses the amount of cores available (if <= NUM_WORKERS),
+		 *              or NUM_WORKERS (if > NUM_WORKERS).
+		 *
+		 * Or:
+		 * 1 <= num_workers <= NUM_WORKERS.
+		 */
+		int num_workers;
+		/*
 		 * By default, libag always start worker threads after a successful
 		 * call to ag_init, however, a user may want to have a fine control
 		 * over the workers, whether by starting/stopping by hand (via
