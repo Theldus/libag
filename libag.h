@@ -30,6 +30,14 @@
 	/* Num workers. */
 	#define NUM_WORKERS 8
 
+	/* Casing. */
+	enum libag_case
+	{
+		LIBAG_CASE_SMART,
+		LIBAG_CASE_SENSITIVE,
+		LIBAG_CASE_INSENSITIVE
+	};
+
 	/**
 	 * Structure that holds a single result, i.e: a file
 	 * that may contains multiples matches.
@@ -98,6 +106,15 @@
 		int literal;
 		/* != 0 disable folder recursion, 0 enables (default). */
 		int disable_recurse_dir;
+		/*
+		 * Casing:
+		 * 0 (smart case, default): if pattern is all lowercase, do a case
+		 *                          insensitive search, otherwise, case
+		 *                          sensitive.
+		 * 1 (case sensitive).
+		 * 2 (case insensitive).
+		 */
+		enum libag_case casing;
 	};
 
 	/* Library forward declarations. */

@@ -451,6 +451,9 @@ int ag_set_config(struct ag_config *ag_config)
 
 	opts.literal = ag_config->literal;
 	opts.recurse_dirs = !ag_config->disable_recurse_dir;
+	if (ag_config->casing < 0 || ag_config->casing > 2)
+		return (-1);
+	opts.casing = ag_config->casing;
 	memcpy(&config, ag_config, sizeof(struct ag_config));
 	return (0);
 }
@@ -687,7 +690,7 @@ struct ag_result **ag_search(char *query, int npaths, char **target_paths,
 	opts.query_len = strlen(query);
 
 	/* Configure search settings. */
-	opts.casing = CASE_SMART;
+	opts.casing = config.casing;
 	setup_search();
 
 	/* Prepare our paths and base_paths. */
