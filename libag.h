@@ -46,10 +46,66 @@
 		} **matches;
 	};
 
+	/**
+	 * @brief libag configuration structure.
+	 *
+	 * This structure holds the configuration that would be used inside
+	 * Ag, you're free to use this structure inside your program and
+	 * set whatever config you want.
+	 *
+	 * Note 1:
+	 * -------
+	 * Please note that whenever you change some field here, please
+	 * also call the routine @ref ag_set_config, otherwise, the
+	 * changes will not be reflected.
+	 *
+	 * Note 2:
+	 * -------
+	 * Beware with trash data inside this structure, do a memset first
+	 * or allocate with calloc.
+	 *
+	 * Note 3:
+	 * -------
+	 * Zeroed options is the default behavior of ag_init()!.
+	 *
+	 * Technical notes:
+	 * ----------------
+	 * This structure is very similar to the 'cli_options' struct
+	 * that Ag uses internally. One could say that I should use
+	 * 'cli_options' instead of this one, but here are my thoughts
+	 * about this:
+	 *
+	 * - This header do _not_ exposes internal Ag functionality to the
+	 * user program and modify Ag in order to expose cli_options seems
+	 * wrong to me. The core idea of libag is to allow the user to use
+	 * libag with only this header (libag.h) and the library (libag.so).
+	 *
+	 * - The 'cli_options' structure:
+	 *   - Holds some data that are never exposed to the command-line, but
+	 *     only used internally; mix internal/external only confuses the
+	 *     user.
+	 *
+	 *   - Contains a lot of options that: a) will not be supported by
+	 *     libag, such as: --color,--context,--after,--before and etc.
+	 *     b) are not supported at the moment; allows the user to
+	 *     mistakenly think that these options are supported do not
+	 *     seems right to me.
+	 *
+	 */
+	struct ag_config
+	{
+		/* != 0 enable literal search, 0 disable (default) (i.e: uses regex). */
+		int literal;
+		/* != 0 disable folder recursion, 0 enables (default). */
+		int disable_recurse_dir;
+	};
+
 	/* Library forward declarations. */
 	extern int ag_start_workers(void);
 	extern int ag_stop_workers(void);
+	extern int ag_set_config(struct ag_config *ag_config);
 	extern int ag_init(void);
+	extern int ag_init_config(struct ag_config *config);
 	extern int ag_finish(void);
 	extern struct ag_result **ag_search(char *query, int npaths,
 		char **target_paths, size_t *nresults);

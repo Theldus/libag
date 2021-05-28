@@ -76,6 +76,17 @@ static struct thrd_result
 	struct ag_result **results;
 } thrd_rslt[NUM_WORKERS + 1] = {0};
 
+/**
+ * In-memory copy of user-defined ag_config.
+ *
+ * Notes:
+ * Although ag_config is almost an alias for Ag's cli_options structure,
+ * it's also a good idea to keep an in-memory copy of the user-defined
+ * config, since we can add our own options in it that do not depends
+ * on the cli_options struct.
+ */
+static struct ag_config config;
+
 /*
  * ============================================================================
  * Util
@@ -426,11 +437,44 @@ static int prepare_paths(int npaths, char **tpaths, char **base_paths[],
  */
 
 /**
+ * @brief Sets the behavior by an user-specified configuration
+ * @p ag_config.
+ *
+ * @param ag_config User-defined configuration.
+ *
+ * @return Returns 0 if success, -1 otherwise.
+ */
+int ag_set_config(struct ag_config *ag_config)
+{
+	if (!ag_config)
+		return (-1);
+
+	opts.literal = ag_config->literal;
+	opts.recurse_dirs = !ag_config->disable_recurse_dir;
+	memcpy(&config, ag_config, sizeof(struct ag_config));
+	return (0);
+}
+
+/**
  * @brief Initializes libag with default settings.
  *
  * @return Returns 0 if success, -1 otherwise.
  */
 int ag_init(void)
+{
+	ag_init_config(NULL);
+	return (0);
+}
+
+/**
+ * @brief Initializes libag with an user-specified
+ * configuration @p config.
+ *
+ * @param config User-defined configuration.
+ *
+ * @return Returns 0 if success, -1 otherwise.
+ */
+int ag_init_config(struct ag_config *ag_config)
 {
 	set_log_level(LOG_LEVEL_WARN);
 	root_ignores = init_ignore(NULL, "", 0);
@@ -439,6 +483,9 @@ int ag_init(void)
 
 	/* Initialize default options. */
 	init_options();
+
+	/* User-defined options, if none, use default settings. */
+	ag_set_config(ag_config);
 
 	/* Start workers. */
 	if (ag_start_workers())
@@ -605,6 +652,9 @@ int ag_stop_workers(void)
  * user to free, with @ref ag_free_result and @ref ag_free_all_results.
  *
  * If nothing is found, return NULL.
+ *
+ * @note Please note that this routine is _not_ thread-safe, and should
+ * not be called from multiples threads.
  */
 struct ag_result **ag_search(char *query, int npaths, char **target_paths,
 	size_t *nresults)
