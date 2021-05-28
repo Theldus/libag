@@ -54,7 +54,7 @@ typedef struct {
 /**
  * @brief Worker list.
  */
-static worker_t *workers;
+static worker_t *workers = NULL;
 static int workers_len;
 
 /**
@@ -491,7 +491,7 @@ int ag_init_config(struct ag_config *ag_config)
 	ag_set_config(ag_config);
 
 	/* Start workers. */
-	if (ag_start_workers())
+	if (config.workers_behavior == LIBAG_START_WORKERS && ag_start_workers())
 		return (-1);
 
 	has_ag_init = 1;
@@ -538,6 +538,10 @@ int ag_start_workers(void)
 {
 	int num_cores;
 	int i;
+
+	/* Check if there are workers already. */
+	if (workers)
+		return (-1);
 
 	workers = NULL;
 	work_queue = NULL;
@@ -617,6 +621,10 @@ int ag_stop_workers(void)
 {
 	int i;
 
+	/* Check if there are workers to stop. */
+	if (!workers)
+		return (-1);
+
 	/* Whatever the workers are doing, we need to stop them. */
 	pthread_mutex_lock(&work_queue_mtx);
 		done_adding_files = TRUE;
@@ -635,6 +643,7 @@ int ag_stop_workers(void)
 	cleanup_ignore(root_ignores);
 	reset_local_results(0);
 	free(workers);
+	workers = NULL;
 
 	return (0);
 }
@@ -668,6 +677,7 @@ struct ag_result **ag_search(char *query, int npaths, char **target_paths,
 	int i;
 
 	result = NULL;
+	*nresults = 0;
 
 	/* Check if libag was initialized. */
 	if (!has_ag_init)
@@ -676,6 +686,15 @@ struct ag_result **ag_search(char *query, int npaths, char **target_paths,
 	/* Query and valid paths. */
 	if (!query || !target_paths)
 		return (NULL);
+
+	/* Check if workers already started or I should start them. */
+	if (!workers)
+	{
+		if (config.workers_behavior != LIBAG_ONSEARCH_WORKERS)
+			return (NULL);
+		if (ag_start_workers())
+			return (NULL);
+	}
 
 	/* Initialize our barrier. */
 	pthread_barrier_init(&worker_done, NULL, workers_len + 1);
@@ -757,6 +776,11 @@ err1:
 	/* Cleanup barriers. */
 	pthread_barrier_destroy(&worker_done);
 	pthread_barrier_destroy(&results_done);
+
+	/* Stop workers, if necessary. */
+	if (workers && config.workers_behavior == LIBAG_ONSEARCH_WORKERS)
+		if (ag_stop_workers())
+			return (NULL);
 
 	return (result);
 }

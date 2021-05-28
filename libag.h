@@ -31,12 +31,14 @@
 	#define NUM_WORKERS 8
 
 	/* Casing. */
-	enum libag_case
-	{
-		LIBAG_CASE_SMART,
-		LIBAG_CASE_SENSITIVE,
-		LIBAG_CASE_INSENSITIVE
-	};
+	#define LIBAG_CASE_SMART       0
+	#define LIBAG_CASE_SENSITIVE   1
+	#define LIBAG_CASE_INSENSITIVE 2
+
+	/* Workers behavior. */
+	#define LIBAG_START_WORKERS    0
+	#define LIBAG_MANUAL_WORKERS   1
+	#define LIBAG_ONSEARCH_WORKERS 2
 
 	/**
 	 * Structure that holds a single result, i.e: a file
@@ -114,7 +116,19 @@
 		 * 1 (case sensitive).
 		 * 2 (case insensitive).
 		 */
-		enum libag_case casing;
+		int casing;
+		/*
+		 * By default, libag always start worker threads after a successful
+		 * call to ag_init, however, a user may want to have a fine control
+		 * over the workers, whether by starting/stopping by hand (via
+		 * ag_start_workers/ag_stop_workers or by letting ag_seach
+		 * manages the start/stop).
+		 *
+		 * LIBAG_START_WORKERS    0 - start workers on ag_init (default)
+		 * LIBAG_MANUAL_WORKERS   1 - manual workers management.
+		 * LIBAG_ONSEARCH_WORKERS 2 - start/stop workers on every ag_search.
+		 */
+		int workers_behavior;
 	};
 
 	/* Library forward declarations. */
