@@ -216,10 +216,16 @@ multiline_done:
                 }
             }
         } else if (binary) {
-            print_binary_file_matches(dir_full_path);
+            if (has_ag_init) {
+                add_local_result(worker_id, dir_full_path, matches,
+                    matches_len, buf, LIBAG_FLG_BINARY);
+            } else {
+                print_binary_file_matches(dir_full_path);
+            }
         } else {
             if (has_ag_init) {
-                add_local_result(worker_id, dir_full_path, matches, matches_len, buf);
+                add_local_result(worker_id, dir_full_path, matches,
+                    matches_len, buf, LIBAG_FLG_TEXT);
             } else {
                 print_file_matches(dir_full_path, buf, buf_len, matches, matches_len);
             }

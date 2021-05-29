@@ -40,6 +40,10 @@
 	#define LIBAG_MANUAL_WORKERS   1
 	#define LIBAG_ONSEARCH_WORKERS 2
 
+	/* Result flags. */
+	#define LIBAG_FLG_TEXT   1
+	#define LIBAG_FLG_BINARY 2
+
 	/**
 	 * Structure that holds a single result, i.e: a file
 	 * that may contains multiples matches.
@@ -54,6 +58,7 @@
 			size_t byte_end;
 			char *match;
 		} **matches;
+		int flags;
 	};
 
 	/**
@@ -165,7 +170,11 @@
 		/*
 		 * Enable a few stats for the last search.
 		 */
-		int stats; /* 0 disable, != 0 enable. */
+		int stats; /* 0 disable (default), != 0 enable. */
+		/*
+		 * Search binary files.
+		 */
+		int search_binary_files; /* 0 disable (default), != 0 enable. */
 	};
 
 	/* Library forward declarations. */

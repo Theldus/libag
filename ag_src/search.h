@@ -81,7 +81,7 @@ void search_dir(ignores *ig, const char *base_path, const char *path, const int 
 /* libag 'private' routines and variables. */
 extern int add_local_result(int worker_id, const char *file,
     const match_t matches[], const size_t matches_len,
-    const char *buf);
+    const char *buf, int flags);
 
 extern int init_local_results(int worker_id);
 extern int has_ag_init;

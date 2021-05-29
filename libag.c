@@ -136,12 +136,13 @@ static int reset_local_results(int reset)
  * @param matches Matches list.
  * @param matches_len Matches list length.
  * @param buf File read buffer.
+ * @param flags Optional flags, such as binary file indicator.
  *
  * @return Returns 0 if success, -1 otherwise.
  */
 int add_local_result(int worker_id, const char *file,
 	const match_t matches[], const size_t matches_len,
-	const char *buf)
+	const char *buf, int flags)
 {
 	struct thrd_result *t_rslt;
 	struct ag_result **ag_rslt;
@@ -178,6 +179,7 @@ int add_local_result(int worker_id, const char *file,
 		return (-1);
 
 	ag_rslt[idx]->nmatches = matches_len;
+	ag_rslt[idx]->flags = flags;
 
 	/* Allocate and adds the matches into the matches list. */
 	ag_rslt[idx]->matches = malloc(sizeof(struct ag_match *) * matches_len);
@@ -458,6 +460,7 @@ int ag_set_config(struct ag_config *ag_config)
 		return (-1);
 	opts.workers = ag_config->num_workers;
 	opts.stats = ag_config->stats;
+	opts.search_binary_files = ag_config->search_binary_files;
 	memcpy(&config, ag_config, sizeof(struct ag_config));
 	return (0);
 }
