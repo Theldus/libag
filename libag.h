@@ -57,6 +57,29 @@
 	};
 
 	/**
+	 * @brief libag search stats
+	 *
+	 * Holds stats relative to the latest search performed by @ref
+	 * ag_search.
+	 *
+	 * You can get this structure by enabling stats via ag_config,
+	 * and retrieving later with @ref ag_get_stats.
+	 *
+	 * Note:
+	 * This is also very similar to the 'ag_stats' structure but
+	 * without the time fields. The reasoning behind the usage of
+	 * this instead of 'ag_stats' is the same of the structure
+	 * below.
+	 */
+	struct ag_search_stats
+	{
+		size_t total_bytes;        /* Amount of bytes read.            */
+		size_t total_files;        /* Amount of files read.            */
+		size_t total_matches;      /* Amount of matches.               */
+		size_t total_file_matches; /* Amount of files that have match. */
+	};
+
+	/**
 	 * @brief libag configuration structure.
 	 *
 	 * This structure holds the configuration that would be used inside
@@ -139,6 +162,10 @@
 		 * LIBAG_ONSEARCH_WORKERS 2 - start/stop workers on every ag_search.
 		 */
 		int workers_behavior;
+		/*
+		 * Enable a few stats for the last search.
+		 */
+		int stats; /* 0 disable, != 0 enable. */
 	};
 
 	/* Library forward declarations. */
@@ -150,6 +177,7 @@
 	extern int ag_finish(void);
 	extern struct ag_result **ag_search(char *query, int npaths,
 		char **target_paths, size_t *nresults);
+	extern int ag_get_stats(struct ag_search_stats *ret_stats);
 	extern void ag_free_result(struct ag_result *result);
 	extern void ag_free_all_results(struct ag_result **results,
 		size_t nresults);

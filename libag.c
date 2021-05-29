@@ -457,6 +457,7 @@ int ag_set_config(struct ag_config *ag_config)
 	if (ag_config->num_workers < 0 || ag_config->num_workers > NUM_WORKERS)
 		return (-1);
 	opts.workers = ag_config->num_workers;
+	opts.stats = ag_config->stats;
 	memcpy(&config, ag_config, sizeof(struct ag_config));
 	return (0);
 }
@@ -482,6 +483,10 @@ int ag_init(void)
  */
 int ag_init_config(struct ag_config *ag_config)
 {
+	/* Reset if already initiated. */
+	if (has_ag_init)
+		ag_finish();
+
 	set_log_level(LOG_LEVEL_WARN);
 	root_ignores = init_ignore(NULL, "", 0);
 
@@ -580,7 +585,7 @@ int ag_start_workers(void)
 		goto err1;
 	if (pthread_mutex_init(&print_mtx, NULL))
 		goto err2;
-	if (opts.stats && pthread_mutex_init(&stats_mtx, NULL))
+	if (pthread_mutex_init(&stats_mtx, NULL))
 		goto err3;
 	if (pthread_mutex_init(&work_queue_mtx, NULL))
 		goto err4;
@@ -604,8 +609,7 @@ int ag_start_workers(void)
 err5:
 	pthread_mutex_destroy(&work_queue_mtx);
 err4:
-	if (opts.stats)
-		pthread_mutex_destroy(&stats_mtx);
+	pthread_mutex_destroy(&stats_mtx);
 err3:
 	pthread_mutex_destroy(&print_mtx);
 err2:
@@ -643,6 +647,7 @@ int ag_stop_workers(void)
 	pthread_cond_destroy(&files_ready);
 	pthread_mutex_destroy(&work_queue_mtx);
 	pthread_mutex_destroy(&print_mtx);
+	pthread_mutex_destroy(&stats_mtx);
 	cleanup_ignore(root_ignores);
 	reset_local_results(0);
 	free(workers);
@@ -786,6 +791,25 @@ err1:
 			return (NULL);
 
 	return (result);
+}
+
+/**
+ * @brief If stats are enabled, get the current stats for
+ * the latest @ref ag_search call.
+ *
+ * @param ret_stats Stats structure to be filled.
+ *
+ * @return Returns 0 if success, -1 otherwise.
+ */
+int ag_get_stats(struct ag_search_stats *ret_stats)
+{
+	if (!config.stats)
+		return (-1);
+	ret_stats->total_bytes = stats.total_bytes;
+	ret_stats->total_files = stats.total_files;
+	ret_stats->total_matches = stats.total_matches;
+	ret_stats->total_file_matches = stats.total_file_matches;
+	return (0);
 }
 
 /**
