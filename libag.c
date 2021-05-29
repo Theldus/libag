@@ -707,13 +707,16 @@ struct ag_result **ag_search(char *query, int npaths, char **target_paths,
 			return (NULL);
 	}
 
+	/* Reset stats. */
+	if (opts.stats)
+		memset(&stats, 0, sizeof(stats));
+
 	/* Initialize our barrier. */
 	pthread_barrier_init(&worker_done, NULL, workers_len + 1);
 	pthread_barrier_init(&results_done, NULL, workers_len + 1);
 
 	/* Prepare query. */
-	if (opts.query)
-		free(query);
+	free(opts.query);
 	opts.query = strdup(query);
 	if (!opts.query)
 		goto err1;
