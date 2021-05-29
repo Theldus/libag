@@ -592,10 +592,14 @@ int ag_start_workers(void)
 		goto err3;
 	if (pthread_mutex_init(&work_queue_mtx, NULL))
 		goto err4;
+	if (pthread_barrier_init(&worker_done, NULL, workers_len + 1))
+		goto err5;
+	if (pthread_barrier_init(&results_done, NULL, workers_len + 1))
+		goto err6;
 
 	/* Reset per-thread local results. */
 	if (reset_local_results(1))
-		goto err5;
+		goto err7;
 
     /* Start workers and wait for something. */
 	for (i = 0; i < workers_len; i++)
@@ -603,12 +607,20 @@ int ag_start_workers(void)
 		workers[i].id = i;
 		int rv = pthread_create(&(workers[i].thread), NULL, &search_file_worker,
 			&(workers[i].id));
+
+		/* Stop gracefully already started threads. */
 		if (rv)
-			goto err5;
+		{
+			workers_len = i + 1;
+			ag_stop_workers();
+			return (-1);
+		}
 	}
-
 	return (0);
-
+err7:
+	pthread_barrier_destroy(&results_done);
+err6:
+	pthread_barrier_destroy(&worker_done);
 err5:
 	pthread_mutex_destroy(&work_queue_mtx);
 err4:
@@ -651,6 +663,8 @@ int ag_stop_workers(void)
 	pthread_mutex_destroy(&work_queue_mtx);
 	pthread_mutex_destroy(&print_mtx);
 	pthread_mutex_destroy(&stats_mtx);
+	pthread_barrier_destroy(&worker_done);
+	pthread_barrier_destroy(&results_done);
 	cleanup_ignore(root_ignores);
 	reset_local_results(0);
 	free(workers);
@@ -710,10 +724,6 @@ struct ag_result **ag_search(char *query, int npaths, char **target_paths,
 	/* Reset stats. */
 	if (opts.stats)
 		memset(&stats, 0, sizeof(stats));
-
-	/* Initialize our barrier. */
-	pthread_barrier_init(&worker_done, NULL, workers_len + 1);
-	pthread_barrier_init(&results_done, NULL, workers_len + 1);
 
 	/* Prepare query. */
 	free(opts.query);
@@ -787,10 +797,6 @@ struct ag_result **ag_search(char *query, int npaths, char **target_paths,
 	opts.query = NULL;
 
 err1:
-	/* Cleanup barriers. */
-	pthread_barrier_destroy(&worker_done);
-	pthread_barrier_destroy(&results_done);
-
 	/* Stop workers, if necessary. */
 	if (workers && config.workers_behavior == LIBAG_ONSEARCH_WORKERS)
 		if (ag_stop_workers())
