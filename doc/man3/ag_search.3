@@ -1,0 +1,120 @@
+.\" MIT License
+.\"
+.\" Copyright (c) 2021 Davidson Francis <davidsondfgl@gmail.com>
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to deal
+.\" in the Software without restriction, including without limitation the rights
+.\" to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+.\" copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in all
+.\" copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+.\" AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+.\" LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+.\" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+.\" SOFTWARE.
+.\"
+.TH man 3 "29 May 2021" "1.0" "libag man page"
+.SH NAME
+ag_search \- Searches for a given pattern on a given path
+.SH SYNOPSIS
+.nf
+.B #include <libag.h>
+.sp
+.BI "struct ag_result **ag_search(char *" query ", int " npaths ,
+.BI "	char **" target_paths ", size_t *" nresults ");"
+.fi
+.SH DESCRIPTION
+The
+.BR ag_search ()
+function searches for
+.I query
+on all paths given in the
+.I target_paths
+list. The
+.I npaths
+specify the number of paths (whether files or directories) contained
+in
+.IR target_paths .
+When a successful call to
+.BR ag_search ()
+is made, the number of results is saved in
+.IR nresults .
+
+.SH RETURN VALUE
+On success, returns a list of (struct ag_result*) containing all the results
+found. It is up to the user to free the results, whether with
+.BR ag_free_result ()
+or
+.BR ag_free_all_results ().
+On error, returns NULL and
+.I nresults
+is set to zero.
+
+.SH NOTES
+Please note that this routine is _not_ thread-safe, and should not be called
+from multiples threads.
+
+The current behavior of
+.BR ag_search ()
+can be changed, with the usage of custom config, set on the init via
+.BR ag_init_config ()
+or later, via
+.BR ag_set_config ().
+
+.SH EXAMPLE
+.nf
+#include <stdio.h>
+#include <libag.h>
+
+int main(void) {
+	struct ag_result **results;
+	size_t nresults;
+
+	char *query  = "foo";
+	char *paths[1] = {"."};
+
+	/* Initiate Ag library with default options. */
+	ag_init();
+
+	/* Searches for foo in the current path. */
+	results = ag_search(query, 1, paths, &nresults);
+	if (!results) {
+		printf("No result found\n");
+		return (1);
+	}
+
+	printf("%d results found\\n", nresults);
+
+	/* Show them on the screen, if any. */
+	for (int i = 0; i < nresults; i++) {
+		for (int j = 0; j < results[i]->nmatches; j++) {
+			printf("file: %s, match: %s, start: %d / end: %d\\n",
+				results[i]->file, results[i]->matches[j]->match,
+				results[i]->matches[j]->byte_start,
+				results[i]->matches[j]->byte_end);
+		}
+	}
+
+	/* Free all resources. */
+	ag_free_all_results(results, nresults);
+
+	/* Release Ag resources. */
+	ag_finish();
+	return (0);
+}
+
+.SH SEE ALSO
+.BR ag_free_result (3),
+.BR ag_free_all_results (3),
+.BR ag_init_config (3),
+.BR ag_set_config (3)
+
+.SH AUTHOR
+Davidson Francis (davidsondfgl@gmail.com)

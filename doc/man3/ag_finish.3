@@ -1,0 +1,66 @@
+.\" MIT License
+.\"
+.\" Copyright (c) 2021 Davidson Francis <davidsondfgl@gmail.com>
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to deal
+.\" in the Software without restriction, including without limitation the rights
+.\" to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+.\" copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in all
+.\" copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+.\" AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+.\" LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+.\" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+.\" SOFTWARE.
+.\"
+.TH man 3 "29 May 2021" "1.0" "libag man page"
+.SH NAME
+ag_finish \- Releases all resources belonging to Ag/libag
+.SH SYNOPSIS
+.nf
+.B #include <libag.h>
+.sp
+.BI "int ag_finish(void);"
+.fi
+.SH DESCRIPTION
+The
+.BR ag_finish ()
+finishes, i.e, releases all resources that Ag/libag have used during its
+execution. Any subsequent call to
+.BR ag_search ()
+will be considered an error, until
+.BR ag_init ()
+(or
+.BR ag_init_config ())
+is invoked again.
+
+.SH RETURN VALUE
+Returns 0 if success, -1 otherwise.
+
+.SH NOTES
+Please note that
+.BR ag_finish ()
+do not releases any memory allocated by
+.BR ag_search ().
+It is up to the user to deallocate that memory, whether by iterating
+over the structure, or by using the helper functions:
+.BR ag_free_result ()
+and
+.BR ag_free_all_results ().
+
+.SH SEE ALSO
+.BR ag_init (3),
+.BR ag_init_config (3),
+.BR ag_search (3),
+.BR ag_free_result (3),
+.BR ag_free_all_results (3)
+
+.SH AUTHOR
+Davidson Francis (davidsondfgl@gmail.com)

@@ -1,0 +1,76 @@
+.\" MIT License
+.\"
+.\" Copyright (c) 2021 Davidson Francis <davidsondfgl@gmail.com>
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to deal
+.\" in the Software without restriction, including without limitation the rights
+.\" to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+.\" copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in all
+.\" copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+.\" AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+.\" LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+.\" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+.\" SOFTWARE.
+.\"
+.TH man 3 "29 May 2021" "1.0" "libag man page"
+.SH NAME
+ag_start_workers \- Start the worker threads for libag
+.SH SYNOPSIS
+.nf
+.B #include <libag.h>
+.sp
+.BI "int ag_start_workers(void);"
+.fi
+.SH DESCRIPTION
+.BR ag_start_workers ()
+start the worker threads for libag.
+
+The
+.BR ag_start_workers()
+and
+.BR ag_stop_workers()
+routines are designed  for experienced users who want to have refined control
+over their worker threads: whether they should start or stop. By default, all
+threads start with
+.BR ag_init ()
+and stop with
+.BR ag_finish ().
+
+If the
+.I workers_behavior
+attribute is set to
+.IR LIBAG_MANUAL_WORKERS ,
+in
+.BR ag_init_config (),
+worker threads will not be started automatically in init, but later through
+this routine.
+
+If
+.I workers_behavior
+is set to
+.IR LIBAG_ONSEARCH_WORKERS ,
+the launch and finish of the worker threads will be controlled by
+.BR ag_search ().
+This reduces the use of resources at the cost of more search time. It can be
+useful if the user does not need to search as often.
+
+.SH RETURN VALUE
+Returns 0 on success, -1 otherwise.
+
+.SH SEE ALSO
+.BR ag_stop_workers (3),
+.BR ag_init_config (3),
+.BR ag_set_config (3),
+.BR ag_init (3),
+.BR ag_finish (3)
+
+.SH AUTHOR
+Davidson Francis (davidsondfgl@gmail.com)
