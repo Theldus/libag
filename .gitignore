@@ -22,5 +22,6 @@
 
 # Default rules.
 *.o
-test
+examples/*.o
+examples/simple
 libag.so

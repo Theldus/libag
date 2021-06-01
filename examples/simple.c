@@ -23,7 +23,7 @@
  */
 
 #include <stdio.h>
-#include "libag.h"
+#include <libag.h>
 
 int main(int argc, char **argv)
 {
@@ -63,4 +63,5 @@ int main(int argc, char **argv)
 
 	/* Release Ag resources. */
 	ag_finish();
+	return (0);
 }

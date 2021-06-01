@@ -44,7 +44,7 @@ LDFLAGS  = -lpcre -llzma -lz -pthread
 #===================================================================
 
 # Conflicts
-.PHONY : all clean
+.PHONY : all clean examples
 
 # Sources
 C_SRC = $(wildcard $(AG_SRC)/*.c) \
@@ -53,7 +53,7 @@ C_SRC = $(wildcard $(AG_SRC)/*.c) \
 # Objects
 OBJ = $(C_SRC:.c=.o)
 
-all: libag.so test
+all: libag.so examples
 
 # Build objects rule
 %.o: %.c
@@ -63,15 +63,16 @@ all: libag.so test
 libag.so: $(OBJ)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 
-test.o: test.c
-	$(CC) $^ -c
-
-# Test
-test: libag.so test.o
-	$(CC) test.o -o $@ libag.so -ggdb3
+# Examples
+examples: examples/simple
+examples/%.o: examples/%.c
+	$(CC) $^ -c -I $(CURDIR) -o $@
+examples/simple: examples/simple.o libag.so
+	$(CC) $< -o $@ libag.so -Wl,-rpath,$(CURDIR)
 
 clean:
-	@rm -f $(AG_SRC)/*.o
-	@rm -f $(CURDIR)/*.o
-	@rm -f $(CURDIR)/libag.so
-	@rm -f $(CURDIR)/test
+	rm -f $(AG_SRC)/*.o
+	rm -f $(CURDIR)/*.o
+	rm -f $(CURDIR)/libag.so
+	rm -f $(CURDIR)/examples/*.o
+	rm -f $(CURDIR)/examples/simple
