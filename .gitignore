@@ -24,4 +24,5 @@
 *.o
 examples/*.o
 examples/simple
+examples/init_config
 libag.so

@@ -64,10 +64,12 @@ libag.so: $(OBJ)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 
 # Examples
-examples: examples/simple
+examples: examples/simple examples/init_config
 examples/%.o: examples/%.c
 	$(CC) $^ -c -I $(CURDIR) -o $@
 examples/simple: examples/simple.o libag.so
+	$(CC) $< -o $@ libag.so -Wl,-rpath,$(CURDIR)
+examples/init_config: examples/init_config.o libag.so
 	$(CC) $< -o $@ libag.so -Wl,-rpath,$(CURDIR)
 
 clean:
@@ -76,3 +78,4 @@ clean:
 	rm -f $(CURDIR)/libag.so
 	rm -f $(CURDIR)/examples/*.o
 	rm -f $(CURDIR)/examples/simple
+	rm -f $(CURDIR)/examples/init_config

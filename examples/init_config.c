@@ -23,11 +23,13 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <libag.h>
 
 int main(int argc, char **argv)
 {
 	struct ag_result **results;
+	struct ag_config config;
 	size_t nresults;
 
 	if (argc < 3)
@@ -36,8 +38,13 @@ int main(int argc, char **argv)
 		return (1);
 	}
 
+	/* 4 workers and enable binary files search. */
+	memset(&config, 0, sizeof(struct ag_config));
+	config.search_binary_files = 1;
+	config.num_workers = 4;
+
 	/* Initiate Ag library with default options. */
-	ag_init();
+	ag_init_config(&config);
 
 	/* Search. */
 	results = ag_search(argv[1], argc - 2, argv + 2, &nresults);
@@ -51,10 +58,11 @@ int main(int argc, char **argv)
 	{
 		for (int j = 0; j < results[i]->nmatches; j++)
 		{
-			printf("file: %s, match: %s, start: %zu / end: %zu\n",
+			printf("file: %s, match: %s, start: %zu / end: %zu, is_binary: %d\n",
 				results[i]->file, results[i]->matches[j]->match,
 				results[i]->matches[j]->byte_start,
-				results[i]->matches[j]->byte_end);
+				results[i]->matches[j]->byte_end,
+				!!(results[i]->flags & LIBAG_FLG_BINARY));
 		}
 	}
 
