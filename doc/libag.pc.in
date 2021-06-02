@@ -1,0 +1,9 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+Name: libag
+Description: The Silver Searcher Library
+Version: 1.0
+Libs: -L${libdir} -lag
+Libs.private: -lpcre -lzma -lz -pthread
+Cflags: -I${includedir}
