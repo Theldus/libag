@@ -74,7 +74,7 @@ static struct thrd_result
 	size_t capacity;
 	size_t nresults;
 	struct ag_result **results;
-} thrd_rslt[NUM_WORKERS + 1] = {0};
+} thrd_rslt[NUM_WORKERS + 1];
 
 /**
  * In-memory copy of user-defined ag_config.

@@ -54,9 +54,9 @@ int main(int argc, char **argv)
 		printf("%zu results found\n", nresults);
 
 	/* Show them on the screen, if any. */
-	for (int i = 0; i < nresults; i++)
+	for (size_t i = 0; i < nresults; i++)
 	{
-		for (int j = 0; j < results[i]->nmatches; j++)
+		for (size_t j = 0; j < results[i]->nmatches; j++)
 		{
 			printf("file: %s, match: %s, start: %zu / end: %zu, is_binary: %d\n",
 				results[i]->file, results[i]->matches[j]->match,
