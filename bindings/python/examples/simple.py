@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # MIT License
 #
 # Copyright (c) 2021 Davidson Francis <davidsondfgl@gmail.com>
@@ -20,15 +22,34 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Default rules.
-*.o
-*.d
-examples/*.o
-examples/simple
-examples/init_config
-bindings/python/__pycache__
-bindings/python/libag.py
-bindings/python/libag.pyc
-bindings/python/_libag.so
-bindings/python/libag_wrap.c
-libag.so
+import sys
+sys.path.append("..")
+from libag import *
+
+if len(sys.argv) < 3:
+	sys.stderr.write("Usage: {} \"regex\" [paths]\n".format(sys.argv[0]))
+	sys.exit(1)
+
+# Initiate Ag library with default options.
+ag_init()
+
+# Search.
+nresults, results = ag_search(sys.argv[1], sys.argv[2:])
+
+if nresults == 0:
+	print("no result found")
+else:
+	print("{} results found".format(nresults))
+
+	# Show them on the screen, if any.
+	for file in results:
+		for match in file.matches:
+			print("file: {}, match: {}, start: {} / end: {}".
+			format(file.file, match.match, match.byte_start, match.byte_end))
+
+# Free all resources.
+if nresults:
+	ag_free_all_results(results)
+
+# Release Ag resources.
+ag_finish()

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # MIT License
 #
 # Copyright (c) 2021 Davidson Francis <davidsondfgl@gmail.com>
@@ -20,15 +22,40 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Default rules.
-*.o
-*.d
-examples/*.o
-examples/simple
-examples/init_config
-bindings/python/__pycache__
-bindings/python/libag.py
-bindings/python/libag.pyc
-bindings/python/_libag.so
-bindings/python/libag_wrap.c
-libag.so
+import sys
+sys.path.append("..")
+from libag import *
+
+if len(sys.argv) < 3:
+	sys.stderr.write("Usage: {} \"regex\" [paths]\n".format(sys.argv[0]))
+	sys.exit(1)
+
+# 4 workers and enable binary files search
+config = ag_config()
+config.search_binary_files = 1
+config.num_workers = 4
+
+# Initiate Ag library with default options.
+ag_init_config(config)
+
+# Search.
+nresults, results = ag_search(sys.argv[1], sys.argv[2:])
+
+if nresults == 0:
+	print("no result found")
+else:
+	print("{} results found".format(nresults))
+
+	# Show them on the screen, if any.
+	for file in results:
+		for match in file.matches:
+			print("file: {}, match: {}, start: {} / end: {}, is_binary: {}".
+				format(file.file, match.match, match.byte_start, match.byte_end,
+				(not not file.flags & LIBAG_FLG_BINARY)))
+
+# Free all resources.
+if nresults:
+	ag_free_all_results(results)
+
+# Release Ag resources.
+ag_finish()
