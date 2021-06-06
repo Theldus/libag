@@ -26,4 +26,8 @@
 examples/*.o
 examples/simple
 examples/init_config
+bindings/__pycache__
+bindings/libag.py
+bindings/_libag.so
+bindings/libag_wrap.c
 libag.so

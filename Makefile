@@ -31,16 +31,25 @@ BINDIR   = $(PREFIX)/bin
 LIBDIR   = $(PREFIX)/lib
 MANPAGES = $(CURDIR)/doc/
 
+# Bindings
+SWIG    ?= swig
+PYBIND   = $(CURDIR)/bindings/python
+PY_INC  ?= $(shell python-config --includes)
+
 #===================================================================
 # Flags
 #===================================================================
 
-CC      ?= gcc
-CFLAGS  += -Wall -Wextra -Wformat=2 -Wno-format-nonliteral -Wshadow
-CFLAGS  += -Wpointer-arith -Wcast-qual -Wmissing-prototypes -Wno-missing-braces
-CFLAGS  += -fPIC -std=c99 -D_GNU_SOURCE -MMD -O3
-LDFLAGS  = -shared
-LDLIBS   = -lpcre -llzma -lz -pthread
+CC        ?= gcc
+PY_CFLAGS := $(CFLAGS)
+CFLAGS    += -Wall -Wextra -Wformat=2 -Wno-format-nonliteral -Wshadow
+CFLAGS    += -Wpointer-arith -Wcast-qual -Wmissing-prototypes -Wno-missing-braces
+CFLAGS    += -fPIC -std=c99 -D_GNU_SOURCE -MMD -O3
+LDFLAGS    = -shared
+LDLIBS     = -lpcre -llzma -lz -pthread
+
+# Bindings
+PY_CFLAGS += -fPIC -std=c99 -D_GNU_SOURCE -MMD -O3
 
 #===================================================================
 # Rules
@@ -48,6 +57,7 @@ LDLIBS   = -lpcre -llzma -lz -pthread
 
 # Conflicts
 .PHONY : all clean examples install uninstall libag.pc
+.PHONY : bindings python-binding
 
 # Paths
 INCDIR  = $(PREFIX)/include
@@ -139,6 +149,21 @@ examples/init_config: examples/init_config.o libag.so
 	@echo "  LD      $@"
 	$(Q)$(CC) $< -o $@ libag.so -Wl,-rpath,$(CURDIR)
 
+# Bindings
+bindings: python-binding
+python-binding: $(PYBIND)/_libag.so
+
+# Python binding
+$(PYBIND)/_libag.so: $(PYBIND)/libag_wrap.o $(OBJ)
+	@echo "  LD      $@"
+	$(Q)$(CC) $^ $(PY_CFLAGS) $(LDFLAGS) $(LDLIBS) -o $@
+$(PYBIND)/libag_wrap.o: $(PYBIND)/libag_wrap.c
+	@echo "  CC      $@"
+	$(Q)$(CC) $^ $(PY_CFLAGS) $(PY_INC) -I $(CURDIR) -c -o $@
+$(PYBIND)/libag_wrap.c: $(PYBIND)/libag.i
+	@echo "  SWIG      $@"
+	$(Q)$(SWIG) -python -o $(PYBIND)/libag_wrap.c $(PYBIND)/libag.i
+
 # Clean
 clean:
 	@echo "  CLEAN        "
@@ -148,6 +173,13 @@ clean:
 	$(Q)rm -f $(CURDIR)/examples/*.o
 	$(Q)rm -f $(CURDIR)/examples/simple
 	$(Q)rm -f $(CURDIR)/examples/init_config
+	$(Q)rm -f $(PYBIND)/*.o
+	$(Q)rm -f $(PYBIND)/*.py
+	$(Q)rm -f $(PYBIND)/*.pyc
+	$(Q)rm -f $(PYBIND)/*.so
+	$(Q)rm -f $(PYBIND)/*.d
+	$(Q)rm -f $(PYBIND)/libag_wrap.c
+	$(Q)rm -rf $(PYBIND)/__pycache__
 	$(Q)rm -f $(DEP)
 
 # Our dependencies =)
