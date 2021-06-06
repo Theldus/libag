@@ -182,7 +182,7 @@ int add_local_result(int worker_id, const char *file,
 	ag_rslt[idx]->flags = flags;
 
 	/* Allocate and adds the matches into the matches list. */
-	ag_rslt[idx]->matches = malloc(sizeof(struct ag_match *) * matches_len);
+	ag_rslt[idx]->matches = malloc(sizeof(struct ag_match *) * (matches_len+1));
 	if (!ag_rslt[idx]->matches)
 		return (-1);
 
@@ -202,6 +202,7 @@ int add_local_result(int worker_id, const char *file,
 		memcpy(ag_rslt[idx]->matches[i]->match, buf + matches[i].start,
 			(matches[i].end - matches[i].start));
 	}
+	ag_rslt[idx]->matches[matches_len] = NULL;
 
 	t_rslt->nresults++;
 	return (0);
@@ -235,7 +236,7 @@ static struct ag_result **get_thrd_results(size_t *nresults_ret)
 
 	/* Allocate results. */
 	idx  = 0;
-	rslt = malloc(sizeof(struct ag_result *) * nresults);
+	rslt = malloc(sizeof(struct ag_result *) * (nresults+1));
 	if (!rslt)
 		goto out;
 
@@ -244,6 +245,7 @@ static struct ag_result **get_thrd_results(size_t *nresults_ret)
 		if (thrd_rslt[i].nresults)
 			for (j = 0; j < thrd_rslt[i].nresults; j++)
 				rslt[idx++] = thrd_rslt[i].results[j];
+	rslt[idx] = NULL;
 out:
 	*nresults_ret = nresults;
 	return (rslt);
