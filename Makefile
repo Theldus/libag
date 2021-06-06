@@ -38,8 +38,9 @@ MANPAGES = $(CURDIR)/doc/
 CC      ?= gcc
 CFLAGS  += -Wall -Wextra -Wformat=2 -Wno-format-nonliteral -Wshadow
 CFLAGS  += -Wpointer-arith -Wcast-qual -Wmissing-prototypes -Wno-missing-braces
-CFLAGS  += -fPIC -pie -Wl,-E -std=c99 -D_GNU_SOURCE -MMD -O3
-LDFLAGS  = -lpcre -llzma -lz -pthread
+CFLAGS  += -fPIC -std=c99 -D_GNU_SOURCE -MMD -O3
+LDFLAGS  = -shared
+LDLIBS   = -lpcre -llzma -lz -pthread
 
 #===================================================================
 # Rules
@@ -81,7 +82,7 @@ endif
 # Ag standalone build
 libag.so: $(OBJ)
 	@echo "  LD      $@"
-	$(Q)$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
+	$(Q)$(CC) $^ $(CFLAGS) $(LDFLAGS) $(LDLIBS) -o $@
 
 # Install
 install: libag.so libag.pc
