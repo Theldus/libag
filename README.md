@@ -82,6 +82,11 @@ over worker threads, via `ag_start_workers()` and `ag_stop_workers()` (see
 On Linux systems, libag can be compiled as an executable dynamic library, which
 behaves exactly like the original ag when invoked directly =).
 
+## Bindings
+Libag has (experimental) bindings support to other programming languages
+(currently just Python). For more information and more detailed documentation, see
+[bindings/python](https://github.com/Theldus/libag/tree/master/bindings/python).
+
 ## Building/Installing
 ### Dependencies
 Libag requires the same dependencies as ag: c99 compiler and libraries: zlib,
@@ -123,11 +128,12 @@ supports Makefile and CMake. Choose the one that best suits your needs:
  ```
 
  ## Documentation
- Detailed documentation of each available routine can be found on the
- [man-pages](https://github.com/Theldus/libag/tree/master/doc/man3).
- Also, the source code is extensively commented
- ([libag.h](https://github.com/Theldus/libag/blob/master/libag.h) is a
- must-read!).
+Detailed documentation of each available routine can be found on the
+[man-pages](https://github.com/Theldus/libag/tree/master/doc/man3).
+Also, the source code is extensively commented
+([libag.h](https://github.com/Theldus/libag/blob/master/libag.h) is a
+must-read!). Documentation on bindings and examples can be found
+[here](https://github.com/Theldus/libag/tree/master/bindings/python).
 
 Complete examples are also available in the
 [examples/](https://github.com/Theldus/libag/tree/master/examples) folder
