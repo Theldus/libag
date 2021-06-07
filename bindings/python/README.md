@@ -28,7 +28,7 @@ Something like:
 cd /path/to/swig
 wget http://prdownloads.sourceforge.net/swig/swig-4.0.2.tar.gz
 tar xf swig-*.tar.gz
-cd swig-*
+cd swig-*/
 
 # If you want to install system-wide
 ./configure
@@ -55,7 +55,7 @@ Please note that this 'extension module' has been compiled for your processor
 architecture and CPython version. If you want to use it in other environments,
 this process must be done again.
 
-#### Small note about Python versions:
+#### Notes about Python versions:
 Some operating systems use Python 2 as the default version (even though they
 have both), others use Python 3, and others just version 3 but without an
 'alias' for the 'python' command, but just 'python3'.
@@ -71,6 +71,14 @@ before invoking the Makefile.
 It is also important to note that builds for Python 2 and 3 are not compatible
 with each other, i.e., a `_libag.so` compiled for Python 2 only works on Python 2,
 and vice versa.
+
+#### Notes about '`python-config`':
+Some systems (such as Ubuntu) do not provide Python headers by default, and
+consequently don't provide the `python-config` tool either. In these cases, it
+is necessary to install the package `python-dev` (for Python 2) or `python3-dev`
+(for Python 3).
+
+Package names and installation method may vary from distribution to distribution.
 
 ## Usage
 Since Python is not C, there are some slight differences in usage between the
