@@ -79,9 +79,6 @@ those that make sense for a library). In addition, it allows detailed control
 over worker threads, via `ag_start_workers()` and `ag_stop_workers()` (see
 [docs](https://github.com/Theldus/libag#documentation) for more details).
 
-On Linux systems, libag can be compiled as an executable dynamic library, which
-behaves exactly like the original ag when invoked directly =).
-
 ## Bindings
 Libag has (experimental) bindings support to other programming languages
 (currently just Python). For more information and more detailed documentation, see
