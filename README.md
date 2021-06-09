@@ -1,5 +1,5 @@
 # libag - The Silver Searcher _Library_ 📚
-[![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache v2](https://img.shields.io/badge/license-Apache%20v2-orange)](https://opensource.org/licenses/Apache-2.0)
 
 libag - The famous The Silver Searcher, but library
 
@@ -143,5 +143,4 @@ whether with issues, documentation, testing, new features, bug fixes, typos,
 etc. Welcome aboard.
 
 ## License
-Libag is licensed under the MIT License but contains part
-of Ag source code, licensed under Apache v2 license.
+Libag is licensed under Apache v2 license.
