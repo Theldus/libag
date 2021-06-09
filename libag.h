@@ -19,6 +19,9 @@
 
 	#include <stddef.h>
 
+	/* Tag/Release identifier. */
+	#define TAG_ID "v2-apache_license"
+
 	/* Num workers. */
 	#define NUM_WORKERS 8
 
