@@ -112,6 +112,7 @@ uninstall:
 	$(Q)rm -f $(DESTDIR)$(MANDIR)/man3/ag_init.3
 	$(Q)rm -f $(DESTDIR)$(MANDIR)/man3/ag_init_config.3
 	$(Q)rm -f $(DESTDIR)$(MANDIR)/man3/ag_search.3
+	$(Q)rm -f $(DESTDIR)$(MANDIR)/man3/ag_search_ts.3
 	$(Q)rm -f $(DESTDIR)$(MANDIR)/man3/ag_set_config.3
 	$(Q)rm -f $(DESTDIR)$(MANDIR)/man3/ag_start_workers.3
 	$(Q)rm -f $(DESTDIR)$(MANDIR)/man3/ag_stop_workers.3

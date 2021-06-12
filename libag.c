@@ -80,6 +80,11 @@ static struct thrd_result
 static struct ag_config config;
 
 /*
+ * @brief Mutex for safe-thread search.
+ */
+static pthread_mutex_t search_mtx;
+
+/*
  * ============================================================================
  * Util
  * ============================================================================
@@ -586,14 +591,16 @@ int ag_start_workers(void)
 		goto err3;
 	if (pthread_mutex_init(&work_queue_mtx, NULL))
 		goto err4;
-	if (pthread_barrier_init(&worker_done, NULL, workers_len + 1))
+	if (pthread_mutex_init(&search_mtx, NULL))
 		goto err5;
-	if (pthread_barrier_init(&results_done, NULL, workers_len + 1))
+	if (pthread_barrier_init(&worker_done, NULL, workers_len + 1))
 		goto err6;
+	if (pthread_barrier_init(&results_done, NULL, workers_len + 1))
+		goto err7;
 
 	/* Reset per-thread local results. */
 	if (reset_local_results(1))
-		goto err7;
+		goto err8;
 
     /* Start workers and wait for something. */
 	for (i = 0; i < workers_len; i++)
@@ -611,10 +618,12 @@ int ag_start_workers(void)
 		}
 	}
 	return (0);
-err7:
+err8:
 	pthread_barrier_destroy(&results_done);
-err6:
+err7:
 	pthread_barrier_destroy(&worker_done);
+err6:
+	pthread_mutex_destroy(&search_mtx);
 err5:
 	pthread_mutex_destroy(&work_queue_mtx);
 err4:
@@ -657,6 +666,7 @@ int ag_stop_workers(void)
 	pthread_mutex_destroy(&work_queue_mtx);
 	pthread_mutex_destroy(&print_mtx);
 	pthread_mutex_destroy(&stats_mtx);
+	pthread_mutex_destroy(&search_mtx);
 	pthread_barrier_destroy(&worker_done);
 	pthread_barrier_destroy(&results_done);
 	cleanup_ignore(root_ignores);
@@ -797,6 +807,57 @@ err1:
 			return (NULL);
 
 	return (result);
+}
+
+/**
+ * @Brief Searches for @p query recursively in all @p target_paths.
+ *
+ * This is the same behavior as the @ref ag_search routine, but thread-safe.
+ *
+ * @param query Pattern to be searched.
+ * @param npaths Number of paths to be searched.
+ * @param target_paths Paths list.
+ * @param nresults Pointer to number of results found.
+ *
+ * @return Returns a list of (struct ag_result*) containing all
+ * the results found. If nothing found, NULL.
+ *
+ * @note Please note that this version is the same as ag_search() but
+ * thread-safe.
+ *
+ * Also note that the thread-safe version here is the most rudimentary
+ * implementation possible: just one lock on the entire function. Which
+ * implies that parallel calls to this function will not be parallel, but
+ * sequential.
+ *
+ * A more efficient implementation is needed. See the issues on GitHub for a
+ * breakdown of this.
+ */
+struct ag_result **ag_search_ts(char *query, int npaths, char **target_paths,
+	size_t *nresults)
+{
+	struct ag_result **r;
+
+	/* Check if libag was initialized. */
+	if (!has_ag_init)
+		return (NULL);
+
+	/* Query and valid paths. */
+	if (!query || !target_paths || !nresults || npaths <= 0)
+		return (NULL);
+
+	/* Check if workers already started or I should start them. */
+	if (!workers)
+	{
+		if (config.workers_behavior != LIBAG_ONSEARCH_WORKERS)
+			return (NULL);
+	}
+
+	/* Lock search. */
+	pthread_mutex_lock(&search_mtx);
+		r = ag_search(query, npaths, target_paths, nresults);
+	pthread_mutex_unlock(&search_mtx);
+	return (r);
 }
 
 /**

@@ -181,6 +181,8 @@
 	extern int ag_finish(void);
 	extern struct ag_result **ag_search(char *query, int npaths,
 		char **target_paths, size_t *nresults);
+	extern struct ag_result **ag_search_ts(char *query, int npaths,
+		char **target_paths, size_t *nresults);
 	extern int ag_get_stats(struct ag_search_stats *ret_stats);
 	extern void ag_free_result(struct ag_result *result);
 	extern void ag_free_all_results(struct ag_result **results,
