@@ -15,7 +15,6 @@
 # Default rules.
 *.o
 *.d
-examples/*.o
 examples/simple
 examples/init_config
 bindings/python/__pycache__
@@ -23,4 +22,6 @@ bindings/python/libag.py
 bindings/python/libag.pyc
 bindings/python/_libag.so
 bindings/python/libag_wrap.c
+bindings/javascript/build/
 libag.so
+build/
