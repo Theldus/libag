@@ -80,9 +80,11 @@ over worker threads, via `ag_start_workers()` and `ag_stop_workers()` (see
 [docs](https://github.com/Theldus/libag#documentation) for more details).
 
 ## Bindings
-Libag has (experimental) bindings support to other programming languages
-(currently just Python). For more information and more detailed documentation, see
-[bindings/python](https://github.com/Theldus/libag/tree/master/bindings/python).
+Libag has (experimental) bindings support to other programming languages:
+Python and Node.js. For more information and more detailed documentation, see
+[bindings/python](https://github.com/Theldus/libag/tree/master/bindings/python)
+and
+[bindings/javascript](https://github.com/Theldus/libag/tree/master/bindings/javascript).
 
 ## Building/Installing
 ### Dependencies
