@@ -42,31 +42,22 @@ npm install -g cmake-js
 Once Node.js and cmake-js were configured, there are several ways to generate the
 addon, depending on how libag is located on your system:
 
-#### a) Installed system-wide
-If you already have the libag properly built and installed, navigate to the
-`bindings/javascript` folder and invoke `cmake-js`, something like:
-```bash
-cd libag/bindings/javascript/
-cmake-js
-```
-#### b) Installed in custom path
-If you installed via Makefile or CMake in a PREFIX other than the default, invoke
-`cmake-js` by providing the installation PATH, something like:
-```bash
-cd libag/bindings/javascript/
-cmake-js --CDCMAKE_PREFIX_PATH=/your/libag/path/here
-```
-#### c) Not installed
-Even if you don't have libag installed, you can still compile and use the module.
-First, make sure libag is built properly, then invoke `cmake-js` as usual.
-
-Note that in this case, the generated wrapper has the hardcoded path of the
-compiled libag.so, so if this file changes location, the addon will not work:
+#### a) Installed system-wide or not installed
+If you already have the libag properly built and installed (or do not have it installed,
+which is optional):
 ```bash
 cd libag/
-make -j4
-cd bindings/javascript/
-cmake-js
+make node-binding
+```
+Just note that if not installed, the generated wrapper has the hardcoded path of the
+compiled libag.so, so if this file changes location, the addon will not work.
+
+#### b) Installed in custom path
+If you installed via Makefile or CMake in a PREFIX other than the default, invoke
+`make` by providing the installation PATH via `PREFIX`, something like:
+```bash
+cd libag/
+make node-binding PREFIX=/your/libag/prefix/here
 ```
 ## Usage
 The differences between C and Javascript are covered below:
