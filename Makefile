@@ -26,6 +26,7 @@ MANPAGES = $(CURDIR)/doc/
 # Bindings
 SWIG    ?= swig
 PYBIND   = $(CURDIR)/bindings/python
+JSBIND   = $(CURDIR)/bindings/javascript
 PY_INC  ?= $(shell python-config --includes)
 
 #===================================================================
@@ -143,8 +144,9 @@ examples/init_config: examples/init_config.o libag.so
 	$(Q)$(CC) $< -o $@ libag.so -Wl,-rpath,$(CURDIR)
 
 # Bindings
-bindings: python-binding
+bindings: python-binding node-binding
 python-binding: $(PYBIND)/_libag.so
+node-binding: $(JSBIND)/build/Release/libag_wrapper.node
 
 # Python binding
 $(PYBIND)/_libag.so: $(PYBIND)/libag_wrap.o $(OBJ)
@@ -156,6 +158,11 @@ $(PYBIND)/libag_wrap.o: $(PYBIND)/libag_wrap.c
 $(PYBIND)/libag_wrap.c: $(PYBIND)/libag.i
 	@echo "  SWIG      $@"
 	$(Q)$(SWIG) -python -o $(PYBIND)/libag_wrap.c $(PYBIND)/libag.i
+
+# Node binding
+$(JSBIND)/build/Release/libag_wrapper.node: $(JSBIND)/libag_node.c libag.so
+	@echo "  CC      $@"
+	$(Q)cd $(JSBIND) && cmake-js --CDCMAKE_PREFIX_PATH=$(PREFIX)
 
 # Clean
 clean:
