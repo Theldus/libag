@@ -45,8 +45,12 @@ after the build, if you have not installed it system-wide (default path to
 pointing to the 'swig' binary. Both options are valid for libag Makefile.
 
 ### 2) Build libag
-Once you have SWIG built and set, invoke make with
-`make bindings`. Several temporary files will be generated in the
+Once you have SWIG built and set:
+```bash
+cd libag/
+make python-binding -j4
+```
+Several temporary files will be generated in the
 bindings/python directory, but the important ones are: `libag.py` and
 `_libag.so`. They are what you should take with you to use libag in any Python
 script :-).
