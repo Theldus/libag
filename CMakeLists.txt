@@ -27,12 +27,16 @@ add_definitions(-D_GNU_SOURCE)
 file(GLOB AG_SRC ag_src/*.c)
 file(GLOB LIBAG_DOC doc/man3/*.3)
 
-# libag
-add_library(ag SHARED ${AG_SRC} libag.c)
-set_target_properties(ag PROPERTIES
-	PUBLIC_HEADER libag.h)
+# libag objects
+add_library(libag_objects OBJECT ${AG_SRC} libag.c)
+set_target_properties(libag_objects PROPERTIES
+	PUBLIC_HEADER libag.h
+	POSITION_INDEPENDENT_CODE 1
+)
+target_include_directories(libag_objects PRIVATE ag_src/)
 
-target_include_directories(ag PRIVATE ag_src/)
+# libag
+add_library(ag SHARED $<TARGET_OBJECTS:libag_objects>)
 target_link_libraries(ag pcre lzma z pthread)
 
 # pkg-config
@@ -57,3 +61,7 @@ target_link_libraries(simple ag)
 add_executable(init_config
 	examples/init_config.c)
 target_link_libraries(init_config ag)
+
+## Bindings
+# Python
+add_subdirectory(bindings)
