@@ -50,7 +50,7 @@ PY_CFLAGS += -fPIC -std=c99 -D_GNU_SOURCE -MMD -O3
 
 # Conflicts
 .PHONY : all clean examples install uninstall libag.pc
-.PHONY : bindings python-binding
+.PHONY : bindings python-binding node-binding
 
 # Paths
 INCDIR  = $(PREFIX)/include
@@ -60,7 +60,9 @@ PKGDIR  = $(LIBDIR)/pkgconfig
 PKGFILE = $(DESTDIR)$(PKGDIR)/libag.pc
 
 # Sources
-C_SRC = $(wildcard $(AG_SRC)/*.c) \
+C_SRC = ag_src/decompress.c ag_src/ignore.c ag_src/lang.c ag_src/log.c \
+	ag_src/main.c ag_src/options.c ag_src/print.c ag_src/print_w32.c \
+	ag_src/scandir.c ag_src/search.c ag_src/util.c ag_src/zfile.c \
 	libag.c
 
 # Objects

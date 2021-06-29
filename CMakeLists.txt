@@ -24,8 +24,33 @@ include_directories(${CMAKE_SOURCE_DIR})
 add_definitions(-D_GNU_SOURCE)
 
 # Files
-file(GLOB AG_SRC ag_src/*.c)
-file(GLOB LIBAG_DOC doc/man3/*.3)
+set(AG_SRC
+	ag_src/decompress.c
+	ag_src/ignore.c
+	ag_src/lang.c
+	ag_src/log.c
+	ag_src/main.c
+	ag_src/options.c
+	ag_src/print.c
+	ag_src/print_w32.c
+	ag_src/scandir.c
+	ag_src/search.c
+	ag_src/util.c
+	ag_src/zfile.c
+)
+set(LIBAG_DOC
+	doc/man3/ag_finish.3
+	doc/man3/ag_free_all_results.3
+	doc/man3/ag_free_result.3
+	doc/man3/ag_get_stats.3
+	doc/man3/ag_init.3
+	doc/man3/ag_init_config.3
+	doc/man3/ag_search.3
+	doc/man3/ag_search_ts.3
+	doc/man3/ag_set_config.3
+	doc/man3/ag_start_workers.3
+	doc/man3/ag_stop_workers.3
+)
 
 # libag objects
 add_library(libag_objects OBJECT ${AG_SRC} libag.c)
